@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.log
+*.covercount.db
+*.covercount.db-journal
+*.covercount.db-wal
+*.covercount.db-shm
+tmp/
+.vitest-reports/
