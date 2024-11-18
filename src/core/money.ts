@@ -8,6 +8,8 @@
  * decimal string at the command line, and that is parsed digit by digit.
  */
 
+import { allocateByWeight } from './rounding.js';
+
 export interface CurrencyInfo {
   readonly code: string;
   readonly exponent: number;
@@ -179,4 +181,21 @@ export function formatMoney(value: Money, options: FormatMoneyOptions = {}): str
 
 export function moneyToDecimalString(value: Money): string {
   return formatMoney(value, { withSymbol: false, grouping: false });
+}
+
+/**
+ * Split an amount across weighted shares so the shares add back to the whole.
+ * Splitting a package price over its courses for revenue reporting has to be
+ * exact, otherwise the course report and the invoice disagree by a cent.
+ */
+export function allocateMoney(value: Money, weights: readonly number[]): Money[] {
+  return allocateByWeight(value.amount, weights).map((share) => money(share, value.currency));
+}
+
+/** Even split, with the odd unit going to the earlier shares. */
+export function splitMoney(value: Money, parts: number): Money[] {
+  if (!Number.isSafeInteger(parts) || parts <= 0) {
+    throw new MoneyError(`cannot split money into ${parts} parts`);
+  }
+  return allocateMoney(value, new Array<number>(parts).fill(1));
 }

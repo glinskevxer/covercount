@@ -16,8 +16,10 @@ import {
   moneyEquals,
   moneyToDecimalString,
   negateMoney,
+  allocateMoney,
   parseMoney,
   scaleMoney,
+  splitMoney,
   subtractMoney,
   sumMoney,
   zeroMoney,
@@ -149,5 +151,29 @@ describe('formatting for a banquet event order', () => {
   it('round trips through a decimal string', () => {
     const original = money(1245075, 'USD');
     expect(parseMoney(moneyToDecimalString(original), 'USD')).toEqual(original);
+  });
+});
+
+describe('splitting an amount so the parts add back', () => {
+  it('allocates by weight and keeps the total', () => {
+    const shares = allocateMoney(money(10000, 'USD'), [3, 1]);
+    expect(shares.map((share) => share.amount)).toEqual([7500, 2500]);
+  });
+
+  it('gives the odd cent to the earlier share', () => {
+    const shares = allocateMoney(money(1000, 'USD'), [1, 1, 1]);
+    expect(shares.map((share) => share.amount)).toEqual([334, 333, 333]);
+    expect(sumMoney(shares, 'USD')).toEqual(money(1000, 'USD'));
+  });
+
+  it('splits evenly into a given number of parts', () => {
+    const shares = splitMoney(money(10001, 'USD'), 4);
+    expect(shares.map((share) => share.amount)).toEqual([2501, 2500, 2500, 2500]);
+    expect(sumMoney(shares, 'USD')).toEqual(money(10001, 'USD'));
+  });
+
+  it('refuses a split into zero or a fractional number of parts', () => {
+    expect(() => splitMoney(money(100, 'USD'), 0)).toThrow(MoneyError);
+    expect(() => splitMoney(money(100, 'USD'), 1.5)).toThrow(/cannot split money/);
   });
 });
