@@ -1,0 +1,36 @@
+/**
+ * Every migration this build carries, in the order they run.
+ *
+ * Nothing else imports the individual migration files. Adding one means
+ * appending it here, and the runner refuses the list if the numbering is
+ * wrong, so the mistake shows up in the first test that opens a store.
+ */
+
+import type { Migration } from './migrate.js';
+import { migration001 } from './migrations/001-property-and-spaces.js';
+import { migrate, schemaVersion, type MigrateResult } from './migrate.js';
+import { openDatabase, type Database, type OpenDatabaseOptions } from './database.js';
+
+export const MIGRATIONS: readonly Migration[] = [migration001];
+
+export const TARGET_SCHEMA_VERSION = MIGRATIONS.reduce(
+  (highest, migration) => Math.max(highest, migration.id),
+  0,
+);
+
+export function migrateToLatest(db: Database): MigrateResult {
+  return migrate(db, MIGRATIONS);
+}
+
+/** Open a store and bring it to the version this build expects. */
+export function openStore(path: string, options: OpenDatabaseOptions = {}): Database {
+  const db = openDatabase(path, { createDirectory: true, ...options });
+  if (options.readOnly !== true) {
+    migrateToLatest(db);
+  }
+  return db;
+}
+
+export function storeVersion(db: Database): number {
+  return schemaVersion(db);
+}
