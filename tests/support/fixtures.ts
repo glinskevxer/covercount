@@ -6,6 +6,7 @@
 
 import { catalogCode, type CatalogCode } from '../../src/core/ids.js';
 import { createProperty, addSpace } from '../../src/property/store.js';
+import { defineCombination } from '../../src/property/combinations.js';
 import type { Database } from '../../src/store/database.js';
 import type { Property } from '../../src/property/types.js';
 
@@ -81,5 +82,19 @@ export function seedSpaces(db: Database): void {
 export function seedPropertyWithSpaces(db: Database): Property {
   const property = seedProperty(db);
   seedSpaces(db);
+  return property;
+}
+
+export function seedCombination(db: Database): void {
+  defineCombination(db, CANYON, {
+    code: 'GRAND',
+    name: 'Grand Ballroom',
+    components: ['GRAND-A', 'GRAND-B'],
+  });
+}
+
+export function seedFullProperty(db: Database): Property {
+  const property = seedPropertyWithSpaces(db);
+  seedCombination(db);
   return property;
 }
