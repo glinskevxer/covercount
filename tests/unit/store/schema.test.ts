@@ -36,6 +36,10 @@ describe('a migrated store', () => {
   it('carries every table the build needs', () => {
     withStore((db) => {
       expect(tableNames(db)).toEqual([
+        'account',
+        'booking',
+        'booking_event',
+        'function_slot',
         'function_space',
         'house_calendar',
         'id_sequence',
