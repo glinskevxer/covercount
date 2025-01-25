@@ -7,6 +7,8 @@
 import { catalogCode, type CatalogCode } from '../../src/core/ids.js';
 import { createProperty, addSpace } from '../../src/property/store.js';
 import { defineCombination } from '../../src/property/combinations.js';
+import { createAccount } from '../../src/booking/accounts.js';
+import type { Account } from '../../src/booking/types.js';
 import type { Database } from '../../src/store/database.js';
 import type { Property } from '../../src/property/types.js';
 
@@ -97,4 +99,24 @@ export function seedFullProperty(db: Database): Property {
   const property = seedPropertyWithSpaces(db);
   seedCombination(db);
   return property;
+}
+
+export const FENWICK: CatalogCode = catalogCode('FENWICK');
+
+export function seedAccount(
+  db: Database,
+  overrides: Partial<Parameters<typeof createAccount>[2]> = {},
+): Account {
+  return createAccount(
+    db,
+    CANYON,
+    {
+      code: 'FENWICK',
+      name: 'Fenwick Geological Society',
+      kind: 'ASSOCIATION',
+      billingEmail: 'ap@fenwick.example',
+      ...overrides,
+    },
+    FIXED_NOW,
+  );
 }
