@@ -8,7 +8,8 @@ import { catalogCode, type CatalogCode } from '../../src/core/ids.js';
 import { createProperty, addSpace } from '../../src/property/store.js';
 import { defineCombination } from '../../src/property/combinations.js';
 import { createAccount } from '../../src/booking/accounts.js';
-import type { Account } from '../../src/booking/types.js';
+import { createBooking } from '../../src/booking/store.js';
+import type { Account, Booking } from '../../src/booking/types.js';
 import type { Database } from '../../src/store/database.js';
 import type { Property } from '../../src/property/types.js';
 
@@ -119,4 +120,29 @@ export function seedAccount(
     },
     FIXED_NOW,
   );
+}
+
+export function seedBooking(
+  db: Database,
+  overrides: Partial<Parameters<typeof createBooking>[2]> = {},
+): Booking {
+  return createBooking(
+    db,
+    CANYON,
+    {
+      postAs: 'Fenwick Annual Symposium',
+      arrivalDate: '2025-04-17',
+      departureDate: '2025-04-19',
+      accountCode: 'FENWICK',
+      salesManager: 'r.okonkwo',
+      ...overrides,
+    },
+    FIXED_NOW,
+  );
+}
+
+export function seedPropertyAccountBooking(db: Database): Booking {
+  seedFullProperty(db);
+  seedAccount(db);
+  return seedBooking(db);
 }
