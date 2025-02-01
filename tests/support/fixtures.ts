@@ -9,7 +9,8 @@ import { createProperty, addSpace } from '../../src/property/store.js';
 import { defineCombination } from '../../src/property/combinations.js';
 import { createAccount } from '../../src/booking/accounts.js';
 import { createBooking } from '../../src/booking/store.js';
-import type { Account, Booking } from '../../src/booking/types.js';
+import { addFunction } from '../../src/booking/functions.js';
+import type { Account, Booking, FunctionSlot } from '../../src/booking/types.js';
 import type { Database } from '../../src/store/database.js';
 import type { Property } from '../../src/property/types.js';
 
@@ -145,4 +146,28 @@ export function seedPropertyAccountBooking(db: Database): Booking {
   seedFullProperty(db);
   seedAccount(db);
   return seedBooking(db);
+}
+
+export function seedFunction(
+  db: Database,
+  bookingId: Booking['id'],
+  overrides: Partial<Parameters<typeof addFunction>[2]> = {},
+): FunctionSlot {
+  return addFunction(
+    db,
+    bookingId,
+    {
+      spaceCode: 'GRAND-A',
+      name: 'Awards Dinner',
+      serviceDate: '2025-04-18',
+      startMinute: 1080,
+      endMinute: 1380,
+      setupStyle: 'ROUNDS-10',
+      serviceStyle: 'PLATED',
+      expectedCovers: 180,
+      ...overrides,
+    },
+    FIXED_NOW,
+    'r.okonkwo',
+  );
 }
