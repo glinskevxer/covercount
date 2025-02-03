@@ -16,6 +16,7 @@ import { isServiceStyle, isSetupStyle } from '../property/types.js';
 import type { ServiceStyle, SetupStyle } from '../property/types.js';
 import { inTransaction, type Database } from '../store/database.js';
 import { allocateEntityId } from '../store/sequence.js';
+import { assertNoClash } from './diary.js';
 import { recordEvent, requireBooking } from './store.js';
 import { isFinished, type FunctionSlot, type FunctionStatus } from './types.js';
 
@@ -126,6 +127,14 @@ export function addFunction(
   assertFits(db, booking.propertyCode, spaceCode, setupStyle, input.expectedCovers);
 
   const date = calendarDate(input.serviceDate);
+
+  assertNoClash(db, {
+    propertyCode: booking.propertyCode,
+    spaceCode,
+    serviceDate: date,
+    startMinute: input.startMinute,
+    endMinute: input.endMinute,
+  });
 
   return inTransaction(db, (handle) => {
     const id = allocateEntityId(
@@ -276,6 +285,18 @@ export function editFunction(
   }
   assertFits(db, slot.propertyCode, spaceCode, setupStyle, merged.expectedCovers);
   const date = calendarDate(merged.serviceDate);
+
+  assertNoClash(
+    db,
+    {
+      propertyCode: slot.propertyCode,
+      spaceCode,
+      serviceDate: date,
+      startMinute: merged.startMinute,
+      endMinute: merged.endMinute,
+    },
+    id,
+  );
 
   return inTransaction(db, (handle) => {
     handle

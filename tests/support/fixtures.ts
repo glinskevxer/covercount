@@ -5,7 +5,7 @@
  */
 
 import { catalogCode, type CatalogCode } from '../../src/core/ids.js';
-import { createProperty, addSpace } from '../../src/property/store.js';
+import { createProperty, addSpace, setSpaceCapacity } from '../../src/property/store.js';
 import { defineCombination } from '../../src/property/combinations.js';
 import { createAccount } from '../../src/booking/accounts.js';
 import { createBooking } from '../../src/booking/store.js';
@@ -95,6 +95,9 @@ export function seedCombination(db: Database): void {
     name: 'Grand Ballroom',
     components: ['GRAND-A', 'GRAND-B'],
   });
+  setSpaceCapacity(db, CANYON, catalogCode('GRAND'), 'ROUNDS-10', 420);
+  setSpaceCapacity(db, CANYON, catalogCode('GRAND'), 'THEATER', 620);
+  setSpaceCapacity(db, CANYON, catalogCode('GRAND'), 'RECEPTION', 700);
 }
 
 export function seedFullProperty(db: Database): Property {
