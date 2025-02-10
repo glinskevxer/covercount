@@ -1,0 +1,123 @@
+/**
+ * How the command line prints.
+ *
+ * Two renderings of the same value: a fixed width table for a person and JSON
+ * for anything downstream. Every command builds a plain object or a list of
+ * them and hands it here, so no command has to know which the caller asked
+ * for and no command formats a number twice.
+ */
+
+export type Cell = string | number | boolean | null | undefined;
+
+export type Row = Record<string, Cell>;
+
+export interface Column {
+  readonly key: string;
+  readonly label?: string;
+  readonly align?: 'left' | 'right';
+}
+
+export type OutputFormat = 'table' | 'json' | 'plain';
+
+export function isOutputFormat(value: string): value is OutputFormat {
+  return value === 'table' || value === 'json' || value === 'plain';
+}
+
+export function renderCell(value: Cell): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'yes' : 'no';
+  }
+  return String(value);
+}
+
+function columnsFor(rows: readonly Row[], columns?: readonly Column[]): Column[] {
+  if (columns !== undefined) {
+    return [...columns];
+  }
+  const keys: string[] = [];
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (!keys.includes(key)) {
+        keys.push(key);
+      }
+    }
+  }
+  return keys.map((key) => ({ key }));
+}
+
+export function renderTable(rows: readonly Row[], columns?: readonly Column[]): string {
+  const resolved = columnsFor(rows, columns);
+  if (resolved.length === 0) {
+    return '';
+  }
+  const headers = resolved.map((column) => column.label ?? column.key);
+  const body = rows.map((row) => resolved.map((column) => renderCell(row[column.key])));
+  const widths = headers.map((header, index) =>
+    body.reduce((widest, cells) => Math.max(widest, (cells[index] ?? '').length), header.length),
+  );
+
+  const lines: string[] = [];
+  lines.push(
+    headers
+      .map((header, index) => pad(header, widths[index] ?? 0, resolved[index]?.align ?? 'left'))
+      .join('  ')
+      .trimEnd(),
+  );
+  lines.push(widths.map((width) => '-'.repeat(width)).join('  '));
+  for (const cells of body) {
+    lines.push(
+      cells
+        .map((cell, index) => pad(cell, widths[index] ?? 0, resolved[index]?.align ?? 'left'))
+        .join('  ')
+        .trimEnd(),
+    );
+  }
+  return lines.join('\n');
+}
+
+function pad(value: string, width: number, align: 'left' | 'right'): string {
+  return align === 'right' ? value.padStart(width) : value.padEnd(width);
+}
+
+export function renderPlain(rows: readonly Row[], columns?: readonly Column[]): string {
+  const resolved = columnsFor(rows, columns);
+  return rows
+    .map((row) => resolved.map((column) => renderCell(row[column.key])).join('\t'))
+    .join('\n');
+}
+
+export function renderJson(value: unknown): string {
+  return JSON.stringify(value, null, 2);
+}
+
+export interface RenderOptions {
+  readonly format: OutputFormat;
+  readonly columns?: readonly Column[];
+  /** What to print when there are no rows at all. */
+  readonly empty?: string;
+}
+
+export function render(rows: readonly Row[], options: RenderOptions): string {
+  if (options.format === 'json') {
+    return renderJson(rows);
+  }
+  if (rows.length === 0) {
+    return options.empty ?? 'nothing to show';
+  }
+  return options.format === 'plain'
+    ? renderPlain(rows, options.columns)
+    : renderTable(rows, options.columns);
+}
+
+/** A single record, printed as a label and value list rather than a table. */
+export function renderRecord(row: Row, options: { format: OutputFormat }): string {
+  if (options.format === 'json') {
+    return renderJson(row);
+  }
+  const keys = Object.keys(row);
+  const width = keys.reduce((widest, key) => Math.max(widest, key.length), 0);
+  return keys.map((key) => `${key.padEnd(width)}  ${renderCell(row[key])}`).join('\n');
+}
