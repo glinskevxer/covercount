@@ -11,6 +11,12 @@ import { Command } from 'commander';
 import { describeError, isDomainError } from '../core/errors.js';
 import { buildContext, type CliContext, type CliEnvironment } from './context.js';
 import { registerStoreCommands } from './commands/store.js';
+import {
+  registerCalendarCommands,
+  registerCombinationCommands,
+  registerPropertyCommands,
+  registerSpaceCommands,
+} from './commands/property.js';
 
 export const VERSION = '0.1.0';
 
@@ -38,6 +44,10 @@ export function buildProgram(makeContext: () => CliContext): Command {
     });
 
   registerStoreCommands(program, makeContext);
+  registerPropertyCommands(program, makeContext);
+  registerSpaceCommands(program, makeContext);
+  registerCombinationCommands(program, makeContext);
+  registerCalendarCommands(program, makeContext);
   return program;
 }
 
