@@ -109,3 +109,59 @@ describe('covercount property list and show', () => {
     expect(result.err).toContain('no property was named');
   });
 });
+
+describe('a refusal from the core reaches the command line as a refusal', () => {
+  it('reports an unknown time zone with exit code one', () => {
+    const cli = cliHarness();
+    cli.run('store', 'init');
+    const result = cli.run(
+      'property',
+      'create',
+      '--code',
+      'X',
+      '--name',
+      'X',
+      '--zone',
+      'Middle/Earth',
+    );
+    expect(result.code).toBe(1);
+    expect(result.err).toContain('clock.invalid');
+    expect(result.err).toContain('not a time zone');
+  });
+
+  it('reports a date that is not a date with exit code one', () => {
+    const cli = cliHarness();
+    seedPropertyThroughCli(cli);
+    const result = cli.run(
+      'calendar',
+      'close',
+      '--property',
+      'CANYON',
+      '--calendar',
+      'office',
+      '--date',
+      '4th July',
+    );
+    expect(result.code).toBe(1);
+    expect(result.err).toContain('calendar.invalid');
+  });
+
+  it('reports a room code that is not a code with exit code one', () => {
+    const cli = cliHarness();
+    seedPropertyThroughCli(cli);
+    const result = cli.run(
+      'space',
+      'add',
+      '--property',
+      'CANYON',
+      '--code',
+      'grand/a',
+      '--name',
+      'Grand',
+      '--fire',
+      '100',
+    );
+    expect(result.code).toBe(1);
+    expect(result.err).toContain('code.shape');
+  });
+});

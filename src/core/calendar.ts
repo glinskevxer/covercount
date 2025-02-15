@@ -8,6 +8,8 @@
  * on this system means cooking on the wrong morning.
  */
 
+import { DomainError } from './errors.js';
+
 export type CalendarDate = string & { readonly __brand: 'CalendarDate' };
 
 export const WEEKDAY_NAMES = [
@@ -22,9 +24,9 @@ export const WEEKDAY_NAMES = [
 
 export type WeekdayName = (typeof WEEKDAY_NAMES)[number];
 
-export class CalendarError extends Error {
+export class CalendarError extends DomainError {
   constructor(message: string) {
-    super(message);
+    super(message, { kind: 'invalid-input', code: 'calendar.invalid' });
     this.name = 'CalendarError';
   }
 }

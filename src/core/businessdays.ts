@@ -15,10 +15,11 @@ import {
   weekdayIndex,
   type CalendarDate,
 } from './calendar.js';
+import { DomainError } from './errors.js';
 
-export class BusinessCalendarError extends Error {
+export class BusinessCalendarError extends DomainError {
   constructor(message: string) {
-    super(message);
+    super(message, { kind: 'invalid-input', code: 'calendar.business' });
     this.name = 'BusinessCalendarError';
   }
 }

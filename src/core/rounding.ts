@@ -7,13 +7,15 @@
  * living in a global setting.
  */
 
+import { DomainError } from './errors.js';
+
 export const ROUNDING_MODES = ['half-up', 'half-even', 'up', 'down', 'toward-zero'] as const;
 
 export type RoundingMode = (typeof ROUNDING_MODES)[number];
 
-export class RoundingError extends Error {
+export class RoundingError extends DomainError {
   constructor(message: string) {
-    super(message);
+    super(message, { kind: 'invalid-input', code: 'rounding.invalid' });
     this.name = 'RoundingError';
   }
 }

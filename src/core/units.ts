@@ -9,6 +9,8 @@
  * product has to fit in a double.
  */
 
+import { DomainError } from './errors.js';
+
 export const DIMENSIONS = ['count', 'mass', 'volume'] as const;
 
 export type Dimension = (typeof DIMENSIONS)[number];
@@ -125,9 +127,9 @@ export const BASE_UNIT: Record<Dimension, UnitCode> = {
   volume: 'ML',
 };
 
-export class UnitError extends Error {
+export class UnitError extends DomainError {
   constructor(message: string) {
-    super(message);
+    super(message, { kind: 'invalid-input', code: 'unit.invalid' });
     this.name = 'UnitError';
   }
 }

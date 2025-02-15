@@ -7,6 +7,7 @@
  * leaves room for the odd fractional rate a municipality invents.
  */
 
+import { DomainError } from './errors.js';
 import { divideRound, type RoundingMode } from './rounding.js';
 import { money, MoneyError, type Money } from './money.js';
 
@@ -16,9 +17,9 @@ export interface Rate {
   readonly ppm: number;
 }
 
-export class RateError extends Error {
+export class RateError extends DomainError {
   constructor(message: string) {
-    super(message);
+    super(message, { kind: 'invalid-input', code: 'rate.invalid' });
     this.name = 'RateError';
   }
 }

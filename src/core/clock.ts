@@ -10,14 +10,15 @@
  */
 
 import { addDays, calendarDate, type CalendarDate } from './calendar.js';
+import { DomainError } from './errors.js';
 
 export type TimeOfDay = number & { readonly __brand: 'TimeOfDay' };
 
 export type TimeZoneName = string & { readonly __brand: 'TimeZoneName' };
 
-export class ClockError extends Error {
+export class ClockError extends DomainError {
   constructor(message: string) {
-    super(message);
+    super(message, { kind: 'invalid-input', code: 'clock.invalid' });
     this.name = 'ClockError';
   }
 }

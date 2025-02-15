@@ -8,6 +8,7 @@
  * decimal string at the command line, and that is parsed digit by digit.
  */
 
+import { DomainError } from './errors.js';
 import { allocateByWeight } from './rounding.js';
 
 export interface CurrencyInfo {
@@ -32,9 +33,9 @@ export interface Money {
   readonly currency: CurrencyCode;
 }
 
-export class MoneyError extends Error {
-  constructor(message: string) {
-    super(message);
+export class MoneyError extends DomainError {
+  constructor(message: string, code = 'money.invalid') {
+    super(message, { kind: 'invalid-input', code });
     this.name = 'MoneyError';
   }
 }

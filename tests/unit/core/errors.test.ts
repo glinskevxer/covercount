@@ -11,6 +11,13 @@ import {
   notPermitted,
   ruleViolation,
 } from '../../../src/core/errors.js';
+import { BusinessCalendar } from '../../../src/core/businessdays.js';
+import { CalendarError, calendarDate } from '../../../src/core/calendar.js';
+import { ClockError, timeZone } from '../../../src/core/clock.js';
+import { MoneyError, money } from '../../../src/core/money.js';
+import { RateError, rate } from '../../../src/core/rate.js';
+import { divideRound } from '../../../src/core/rounding.js';
+import { parseUnitCode } from '../../../src/core/units.js';
 
 describe('building a refusal', () => {
   it('carries a kind and a code', () => {
@@ -82,5 +89,36 @@ describe('reporting a refusal', () => {
     expect(describeError(invalidInput('x.y', 'no'))).toBe('x.y: no');
     expect(describeError(new TypeError('boom'))).toBe('TypeError: boom');
     expect(describeError('a string')).toBe('a string');
+  });
+});
+
+describe('every refusal the core raises is a domain error', () => {
+  it('covers money, rates, rounding, units, dates, clocks and calendars', () => {
+    const raisers: [string, () => unknown][] = [
+      ['money', () => money(1.5, 'USD')],
+      ['rate', () => rate(1.5)],
+      ['rounding', () => divideRound(1, 0, 'half-up')],
+      ['unit', () => parseUnitCode('scoop')],
+      ['calendar', () => calendarDate('4th July')],
+      ['clock', () => timeZone('Middle/Earth')],
+      ['business calendar', () => new BusinessCalendar({ closedWeekdays: [9] })],
+    ];
+    for (const [label, raise] of raisers) {
+      try {
+        raise();
+        expect.unreachable(`${label} should have refused`);
+      } catch (error) {
+        expect(isDomainError(error), `${label} raised ${String(error)}`).toBe(true);
+        expect((error as DomainError).kind).toBe('invalid-input');
+        expect((error as DomainError).code).toMatch(/^[a-z]+\.[a-z]+$/);
+      }
+    }
+  });
+
+  it('keeps the class names so a caller can still narrow on them', () => {
+    expect(() => money(1.5, 'USD')).toThrow(MoneyError);
+    expect(() => rate(1.5)).toThrow(RateError);
+    expect(() => calendarDate('nope')).toThrow(CalendarError);
+    expect(() => timeZone('Middle/Earth')).toThrow(ClockError);
   });
 });
