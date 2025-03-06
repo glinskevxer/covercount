@@ -9,10 +9,11 @@
 import type { Migration } from './migrate.js';
 import { migration001 } from './migrations/001-property-and-spaces.js';
 import { migration002 } from './migrations/002-bookings-and-functions.js';
+import { migration003 } from './migrations/003-catalog.js';
 import { migrate, schemaVersion, type MigrateResult } from './migrate.js';
 import { openDatabase, type Database, type OpenDatabaseOptions } from './database.js';
 
-export const MIGRATIONS: readonly Migration[] = [migration001, migration002];
+export const MIGRATIONS: readonly Migration[] = [migration001, migration002, migration003];
 
 export const TARGET_SCHEMA_VERSION = MIGRATIONS.reduce(
   (highest, migration) => Math.max(highest, migration.id),
