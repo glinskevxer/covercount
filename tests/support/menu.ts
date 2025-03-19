@@ -5,6 +5,7 @@
  */
 
 import { createItem } from '../../src/catalog/items.js';
+import { createPackage } from '../../src/catalog/packages.js';
 import type { Database } from '../../src/store/database.js';
 import { CANYON, FIXED_NOW } from './fixtures.js';
 
@@ -126,4 +127,35 @@ export function seedMenu(db: Database): void {
   for (const item of MENU_ITEMS) {
     createItem(db, CANYON, item, FIXED_NOW);
   }
+}
+
+export function seedPackages(db: Database): void {
+  createPackage(
+    db,
+    CANYON,
+    {
+      code: 'PLATED-THREE',
+      name: 'Three course plated dinner',
+      serviceStyle: 'PLATED',
+      minCovers: 20,
+      courses: [
+        { course: 'STARTER', choices: 1, items: ['BEET-TART'] },
+        { course: 'MAIN', choices: 1, items: ['SHORT-RIB', 'HALIBUT', 'ROOT-PLATE'] },
+        { course: 'DESSERT', choices: 1, items: ['CHOC-TART', 'SORBET'] },
+      ],
+    },
+    FIXED_NOW,
+  );
+  createPackage(
+    db,
+    CANYON,
+    {
+      code: 'RECEPTION-HOUR',
+      name: 'One hour canape reception',
+      serviceStyle: 'RECEPTION',
+      minCovers: 30,
+      courses: [{ course: 'CANAPE', choices: 1, required: false, items: ['CRAB-CAKE'] }],
+    },
+    FIXED_NOW,
+  );
 }
