@@ -6,6 +6,7 @@
 
 import { createItem } from '../../src/catalog/items.js';
 import { createPackage } from '../../src/catalog/packages.js';
+import { createPriceBook, setPrice } from '../../src/catalog/pricing.js';
 import type { Database } from '../../src/store/database.js';
 import { CANYON, FIXED_NOW } from './fixtures.js';
 
@@ -158,4 +159,34 @@ export function seedPackages(db: Database): void {
     },
     FIXED_NOW,
   );
+}
+
+export function seedPrices(db: Database): void {
+  createPriceBook(db, CANYON, { code: 'RACK-2025', name: 'Rack rates 2025' }, FIXED_NOW);
+  const lines: [string, string, string, number][] = [
+    ['PACKAGE', 'PLATED-THREE', '2025-01-01', 8950],
+    ['PACKAGE', 'RECEPTION-HOUR', '2025-01-01', 3200],
+    ['ITEM', 'LOBSTER-UP', '2025-01-01', 2400],
+    ['ITEM', 'CRAB-CAKE', '2025-01-01', 675],
+    ['ITEM', 'HOUSE-RED', '2025-01-01', 4200],
+    ['ITEM', 'COFFEE', '2025-01-01', 8500],
+    ['ITEM', 'CHAFER', '2025-01-01', 1800],
+    ['ITEM', 'SCREEN', '2025-01-01', 22500],
+    ['ITEM', 'CARVER', '2025-01-01', 4500],
+  ];
+  for (const [subjectKind, subjectCode, effectiveFrom, priceMinor] of lines) {
+    setPrice(db, CANYON, {
+      bookCode: 'RACK-2025',
+      subjectKind,
+      subjectCode,
+      effectiveFrom,
+      priceMinor,
+    });
+  }
+}
+
+export function seedFullCatalog(db: Database): void {
+  seedMenu(db);
+  seedPackages(db);
+  seedPrices(db);
 }
