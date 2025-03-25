@@ -39,6 +39,8 @@ describe('a migrated store', () => {
         'account',
         'booking',
         'booking_event',
+        'cover_movement',
+        'function_cover',
         'function_slot',
         'function_space',
         'house_calendar',
@@ -55,6 +57,7 @@ describe('a migrated store', () => {
         'schema_migration',
         'space_capacity',
         'space_component',
+        'special_meal',
       ]);
     });
   });
