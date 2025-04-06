@@ -17,6 +17,11 @@ import {
   registerPropertyCommands,
   registerSpaceCommands,
 } from './commands/property.js';
+import {
+  registerAccountCommands,
+  registerBookingChangeCommands,
+  registerBookingCommands,
+} from './commands/booking.js';
 
 export const VERSION = '0.1.0';
 
@@ -48,6 +53,9 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerSpaceCommands(program, makeContext);
   registerCombinationCommands(program, makeContext);
   registerCalendarCommands(program, makeContext);
+  registerAccountCommands(program, makeContext);
+  registerBookingCommands(program, makeContext);
+  registerBookingChangeCommands(program, makeContext);
   return program;
 }
 
