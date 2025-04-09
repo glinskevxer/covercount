@@ -22,6 +22,11 @@ import {
   registerBookingChangeCommands,
   registerBookingCommands,
 } from './commands/booking.js';
+import {
+  registerDiaryCommands,
+  registerFunctionChangeCommands,
+  registerFunctionCommands,
+} from './commands/functions.js';
 
 export const VERSION = '0.1.0';
 
@@ -56,6 +61,9 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerAccountCommands(program, makeContext);
   registerBookingCommands(program, makeContext);
   registerBookingChangeCommands(program, makeContext);
+  registerFunctionCommands(program, makeContext);
+  registerFunctionChangeCommands(program, makeContext);
+  registerDiaryCommands(program, makeContext);
   return program;
 }
 

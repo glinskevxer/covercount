@@ -110,3 +110,74 @@ export function seedRoomsThroughCli(cli: CliHarness): void {
   );
   cli.run('space', 'capacity', ...p, '--code', 'ASPEN', '--style', 'ROUNDS-10', '--covers', '60');
 }
+
+export function seedCombinedRoomThroughCli(cli: CliHarness): void {
+  const p = ['--property', 'CANYON'];
+  cli.run(
+    'room',
+    'combine',
+    ...p,
+    '--code',
+    'GRAND',
+    '--name',
+    'Grand Ballroom',
+    '--parts',
+    'GRAND-A,GRAND-B',
+  );
+  cli.run('space', 'capacity', ...p, '--code', 'GRAND', '--style', 'ROUNDS-10', '--covers', '420');
+}
+
+export function seedBookingThroughCli(cli: CliHarness): string {
+  const p = ['--property', 'CANYON'];
+  cli.run(
+    'account',
+    'add',
+    ...p,
+    '--code',
+    'FENWICK',
+    '--name',
+    'Fenwick Geological Society',
+    '--kind',
+    'ASSOCIATION',
+  );
+  const record = cli.json<{ id: string }>(
+    'booking',
+    'create',
+    ...p,
+    '--post-as',
+    'Fenwick Annual Symposium',
+    '--arrival',
+    '2025-04-17',
+    '--departure',
+    '2025-04-19',
+    '--account',
+    'FENWICK',
+  );
+  return record.id;
+}
+
+export function seedReceptionCapacityThroughCli(cli: CliHarness): void {
+  const p = ['--property', 'CANYON'];
+  cli.run(
+    'space',
+    'capacity',
+    ...p,
+    '--code',
+    'GRAND-A',
+    '--style',
+    'RECEPTION',
+    '--covers',
+    '350',
+  );
+  cli.run(
+    'space',
+    'capacity',
+    ...p,
+    '--code',
+    'GRAND-B',
+    '--style',
+    'RECEPTION',
+    '--covers',
+    '350',
+  );
+}
