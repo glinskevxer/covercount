@@ -27,6 +27,11 @@ import {
   registerFunctionChangeCommands,
   registerFunctionCommands,
 } from './commands/functions.js';
+import {
+  registerCoverCommands,
+  registerCoverReadCommands,
+  registerSpecialMealCommands,
+} from './commands/covers.js';
 
 export const VERSION = '0.1.0';
 
@@ -64,6 +69,9 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerFunctionCommands(program, makeContext);
   registerFunctionChangeCommands(program, makeContext);
   registerDiaryCommands(program, makeContext);
+  registerCoverCommands(program, makeContext);
+  registerCoverReadCommands(program, makeContext);
+  registerSpecialMealCommands(program, makeContext);
   return program;
 }
 
