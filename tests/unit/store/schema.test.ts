@@ -41,6 +41,8 @@ describe('a migrated store', () => {
         'booking_event',
         'cover_movement',
         'function_cover',
+        'function_extra',
+        'function_selection',
         'function_slot',
         'function_space',
         'house_calendar',
