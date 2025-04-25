@@ -257,6 +257,7 @@ describe('reading recipes', () => {
         'BEET-TARTARE',
         'BLOOD-ORANGE-SORBET',
         'BRAISED-SHORT-RIB',
+        'ROAST-HALIBUT',
         'WINTER-ROOT-PLATE',
       ]);
       expect(listRecipes(db, CANYON, { station: 'GARDE-MANGER' }).map((row) => row.code)).toEqual([
@@ -276,7 +277,8 @@ describe('reading recipes', () => {
       seedMenu(db);
       seedKitchen(db);
       expect(recipeForItem(db, CANYON, code('SHORT-RIB'))?.code).toBe('BRAISED-SHORT-RIB');
-      expect(recipeForItem(db, CANYON, code('HALIBUT'))).toBeUndefined();
+      expect(recipeForItem(db, CANYON, code('HALIBUT'))?.code).toBe('ROAST-HALIBUT');
+      expect(recipeForItem(db, CANYON, code('MUSHROOM-WELL'))).toBeUndefined();
     });
   });
 

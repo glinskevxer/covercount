@@ -29,6 +29,14 @@ export const INGREDIENTS = [
   },
   { code: 'SUGAR', name: 'Caster sugar', store: 'DRY', purchaseUnit: 'LB', packSize: 25 },
   { code: 'BEETROOT', name: 'Golden beetroot', store: 'PRODUCE', purchaseUnit: 'LB', packSize: 20 },
+  {
+    code: 'HALIBUT-FILLET',
+    name: 'Halibut fillet',
+    store: 'CHILL',
+    purchaseUnit: 'LB',
+    packSize: 22,
+  },
+  { code: 'BUTTER', name: 'Unsalted butter', store: 'CHILL', purchaseUnit: 'LB', packSize: 36 },
 ];
 
 export function seedLarder(db: Database): void {
@@ -101,6 +109,22 @@ export function seedRecipes(db: Database): void {
       lines: [
         { ingredientCode: 'BEETROOT', quantity: 6, unit: 'LB', yieldPercent: 70 },
         { ingredientCode: 'OLIVE-OIL', quantity: 250, unit: 'ML' },
+      ],
+    },
+    FIXED_NOW,
+  );
+  createRecipe(
+    db,
+    CANYON,
+    {
+      code: 'ROAST-HALIBUT',
+      name: 'Roast halibut',
+      itemCode: 'HALIBUT',
+      batchPortions: 24,
+      station: 'FISH',
+      lines: [
+        { ingredientCode: 'HALIBUT-FILLET', quantity: 12, unit: 'LB', yieldPercent: 88 },
+        { ingredientCode: 'BUTTER', quantity: 1.5, unit: 'LB' },
       ],
     },
     FIXED_NOW,
