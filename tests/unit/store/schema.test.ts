@@ -48,6 +48,7 @@ describe('a migrated store', () => {
         'house_calendar',
         'id_sequence',
         'ingredient',
+        'labour_rate',
         'menu_item',
         'menu_item_allergen',
         'menu_item_diet',
@@ -62,9 +63,11 @@ describe('a migrated store', () => {
         'requisition',
         'requisition_line',
         'schema_migration',
+        'shift',
         'space_capacity',
         'space_component',
         'special_meal',
+        'staffing_rule',
       ]);
     });
   });
