@@ -39,6 +39,7 @@ describe('a migrated store', () => {
         'account',
         'booking',
         'booking_event',
+        'charge_line',
         'cover_movement',
         'function_cover',
         'function_extra',
@@ -48,6 +49,9 @@ describe('a migrated store', () => {
         'house_calendar',
         'id_sequence',
         'ingredient',
+        'invoice',
+        'invoice_function',
+        'invoice_payment',
         'labour_rate',
         'menu_item',
         'menu_item_allergen',
@@ -68,6 +72,8 @@ describe('a migrated store', () => {
         'space_component',
         'special_meal',
         'staffing_rule',
+        'tax_profile',
+        'tax_rate',
       ]);
     });
   });
