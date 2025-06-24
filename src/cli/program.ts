@@ -32,6 +32,12 @@ import {
   registerCoverReadCommands,
   registerSpecialMealCommands,
 } from './commands/covers.js';
+import {
+  registerChargeCommands,
+  registerInvoiceCommands,
+  registerPaymentCommands,
+  registerTaxCommands,
+} from './commands/billing.js';
 
 export const VERSION = '0.1.0';
 
@@ -72,6 +78,10 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerCoverCommands(program, makeContext);
   registerCoverReadCommands(program, makeContext);
   registerSpecialMealCommands(program, makeContext);
+  registerTaxCommands(program, makeContext);
+  registerChargeCommands(program, makeContext);
+  registerInvoiceCommands(program, makeContext);
+  registerPaymentCommands(program, makeContext);
   return program;
 }
 
