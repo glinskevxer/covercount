@@ -37,8 +37,11 @@ describe('a migrated store', () => {
     withStore((db) => {
       expect(tableNames(db)).toEqual([
         'account',
+        'beo',
         'booking',
         'booking_event',
+        'change_order',
+        'change_order_line',
         'charge_line',
         'cover_movement',
         'function_cover',
