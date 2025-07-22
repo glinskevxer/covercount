@@ -18,6 +18,8 @@ export interface ReadyFunctionOptions {
   readonly guarantee?: number;
   readonly specialCovers?: number;
   readonly split?: boolean;
+  /** The combined ballroom, for a guarantee that will be raised past 200. */
+  readonly room?: string;
 }
 
 export function readyFunction(db: Database, options: ReadyFunctionOptions = {}): FunctionSlot {
@@ -27,7 +29,9 @@ export function readyFunction(db: Database, options: ReadyFunctionOptions = {}):
   const booking = seedPropertyAccountBooking(db);
   seedFullCatalog(db);
   seedKitchen(db);
-  const slot = seedFunction(db, booking.id);
+  const slot = seedFunction(db, booking.id, {
+    ...(options.room === undefined ? {} : { spaceCode: options.room }),
+  });
   openCovers(db, slot.id, {
     packageCode: 'PLATED-THREE',
     priceBookCode: 'RACK-2025',
