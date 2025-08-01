@@ -38,6 +38,7 @@ import {
   registerPaymentCommands,
   registerTaxCommands,
 } from './commands/billing.js';
+import { registerChangeCommands, registerOrderCommands } from './commands/orders.js';
 
 export const VERSION = '0.1.0';
 
@@ -82,6 +83,8 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerChargeCommands(program, makeContext);
   registerInvoiceCommands(program, makeContext);
   registerPaymentCommands(program, makeContext);
+  registerOrderCommands(program, makeContext);
+  registerChangeCommands(program, makeContext);
   return program;
 }
 

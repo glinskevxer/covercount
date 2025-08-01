@@ -1,0 +1,330 @@
+/**
+ * Commands for the banquet event order itself: drawing it, sending it out,
+ * getting it signed, and raising a change order when it drifts.
+ */
+
+import type { Command } from 'commander';
+import { parseEntityId } from '../../core/ids.js';
+import { formatMoney, parseMoney } from '../../core/money.js';
+import { assembleOrder, renderOrder } from '../../orders/document.js';
+import {
+  distributeRevision,
+  drawRevision,
+  listRevisions,
+  liveRevision,
+  renderRevision,
+  revisionDrift,
+  revisionIsStale,
+  signRevision,
+} from '../../orders/revisions.js';
+import {
+  applyChangeOrder,
+  changeOrderLines,
+  declineChangeOrder,
+  listChangeOrders,
+  raiseChangeOrder,
+} from '../../orders/changes.js';
+import { requireProperty } from '../../property/store.js';
+import { render, renderRecord } from '../output.js';
+import { withOpenStore, type CliContext } from '../context.js';
+
+function slotId(value: string) {
+  return parseEntityId('functionSlot', value);
+}
+
+export function registerOrderCommands(program: Command, makeContext: () => CliContext): void {
+  const order = program.command('order').description('the banquet event order');
+
+  order
+    .command('preview')
+    .description('what the sheet would say if it were drawn now')
+    .requiredOption('--function <id>', 'the function')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(
+        context,
+        (db) => {
+          const assembled = assembleOrder(db, slotId(options.function ?? ''));
+          context.write(
+            context.format === 'json' ? JSON.stringify(assembled, null, 2) : renderOrder(assembled),
+          );
+        },
+        { readOnly: true },
+      );
+    });
+
+  order
+    .command('draw')
+    .description('freeze a new revision')
+    .requiredOption('--function <id>', 'the function')
+    .option('--note <note>', 'why this one was drawn', '')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const drawn = drawRevision(
+          db,
+          slotId(options.function ?? ''),
+          context.now(),
+          context.actor,
+          options.note ?? '',
+        );
+        context.write(
+          renderRecord(
+            {
+              id: drawn.id,
+              revision: drawn.revision,
+              status: drawn.status,
+              drawnBy: drawn.drawnBy,
+              note: drawn.note,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  order
+    .command('show')
+    .description('print a revision as it was frozen')
+    .requiredOption('--id <id>', 'the revision')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(
+        context,
+        (db) => {
+          context.write(renderRevision(db, parseEntityId('beo', options.id ?? '')));
+        },
+        { readOnly: true },
+      );
+    });
+
+  order
+    .command('list')
+    .description('every revision on a function')
+    .requiredOption('--function <id>', 'the function')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(
+        context,
+        (db) => {
+          context.write(
+            render(
+              listRevisions(db, slotId(options.function ?? '')).map((row) => ({
+                id: row.id,
+                revision: row.revision,
+                status: row.status,
+                drawnAt: row.drawnAt,
+                drawnBy: row.drawnBy,
+                signedBy: row.signedBy ?? '',
+              })),
+              { format: context.format, empty: 'no sheet has been drawn yet' },
+            ),
+          );
+        },
+        { readOnly: true },
+      );
+    });
+
+  order
+    .command('distribute')
+    .description('send the live revision out')
+    .requiredOption('--id <id>', 'the revision')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const moved = distributeRevision(db, parseEntityId('beo', options.id ?? ''));
+        context.write(
+          renderRecord({ id: moved.id, status: moved.status }, { format: context.format }),
+        );
+      });
+    });
+
+  order
+    .command('sign')
+    .description('record the client signature')
+    .requiredOption('--id <id>', 'the revision')
+    .requiredOption('--by <name>', 'who signed it')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const signed = signRevision(
+          db,
+          parseEntityId('beo', options.id ?? ''),
+          options.by ?? '',
+          context.now(),
+        );
+        context.write(
+          renderRecord(
+            { id: signed.id, status: signed.status, signedBy: signed.signedBy ?? '' },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  order
+    .command('drift')
+    .description('what has moved since the live sheet was drawn')
+    .requiredOption('--function <id>', 'the function')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(
+        context,
+        (db) => {
+          const functionId = slotId(options.function ?? '');
+          const live = liveRevision(db, functionId);
+          if (live === undefined) {
+            context.write('no sheet has been drawn yet');
+            return;
+          }
+          if (!revisionIsStale(db, functionId)) {
+            context.write(`${live.id} is still current`);
+            return;
+          }
+          context.write(
+            render(
+              revisionDrift(db, functionId).map((row) => ({
+                field: row.field,
+                was: row.was,
+                becomes: row.becomes,
+              })),
+              { format: context.format, empty: `${live.id} is still current` },
+            ),
+          );
+        },
+        { readOnly: true },
+      );
+    });
+}
+
+export function registerChangeCommands(program: Command, makeContext: () => CliContext): void {
+  const change = program.command('change').description('change orders against a signed sheet');
+
+  change
+    .command('raise')
+    .description('raise a change order off whatever has drifted')
+    .requiredOption('--function <id>', 'the function')
+    .requiredOption('--reason <reason>', 'why the change was asked for')
+    .option('--fee <amount>', 'a late fee, only allowed after the guarantee closed')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const raised = raiseChangeOrder(
+          db,
+          slotId(options.function ?? ''),
+          {
+            reason: options.reason ?? '',
+            raisedBy: context.actor,
+            ...(options.fee === undefined
+              ? {}
+              : { feeMinor: parseMoney(options.fee, 'USD').amount }),
+          },
+          context.now(),
+        );
+        context.write(
+          renderRecord(
+            {
+              id: raised.id,
+              status: raised.status,
+              afterCutoff: raised.afterCutoff,
+              fee: formatMoney(raised.fee),
+              reason: raised.reason,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  change
+    .command('show')
+    .description('what one change order carries')
+    .requiredOption('--id <id>', 'the change order')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(
+        context,
+        (db) => {
+          context.write(
+            render(
+              changeOrderLines(db, parseEntityId('changeOrder', options.id ?? '')).map((row) => ({
+                field: row.field,
+                was: row.was,
+                becomes: row.becomes,
+              })),
+              { format: context.format, empty: 'that change order carries no lines' },
+            ),
+          );
+        },
+        { readOnly: true },
+      );
+    });
+
+  change
+    .command('list')
+    .description('every change order on a function')
+    .requiredOption('--function <id>', 'the function')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(
+        context,
+        (db) => {
+          context.write(
+            render(
+              listChangeOrders(db, slotId(options.function ?? '')).map((row) => ({
+                id: row.id,
+                status: row.status,
+                afterCutoff: row.afterCutoff,
+                fee: formatMoney(row.fee),
+                raisedBy: row.raisedBy,
+                reason: row.reason,
+              })),
+              { format: context.format, empty: 'nothing has been changed on that function' },
+            ),
+          );
+        },
+        { readOnly: true },
+      );
+    });
+
+  change
+    .command('apply')
+    .description('apply a change order and draw a fresh revision')
+    .requiredOption('--id <id>', 'the change order')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const applied = applyChangeOrder(
+          db,
+          parseEntityId('changeOrder', options.id ?? ''),
+          context.now(),
+          context.actor,
+        );
+        context.write(
+          renderRecord(
+            { id: applied.id, status: applied.status, fee: formatMoney(applied.fee) },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  change
+    .command('decline')
+    .description('turn a change order down')
+    .requiredOption('--id <id>', 'the change order')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const property = requireProperty(db, context.requireProperty());
+        const declined = declineChangeOrder(
+          db,
+          parseEntityId('changeOrder', options.id ?? ''),
+          property.currency,
+        );
+        context.write(
+          renderRecord({ id: declined.id, status: declined.status }, { format: context.format }),
+        );
+      });
+    });
+}
