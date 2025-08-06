@@ -35,49 +35,14 @@ describe('the migration list', () => {
 describe('a migrated store', () => {
   it('carries every table the build needs', () => {
     withStore((db) => {
-      expect(tableNames(db)).toEqual([
-        'account',
-        'beo',
-        'booking',
-        'booking_event',
-        'change_order',
-        'change_order_line',
-        'charge_line',
-        'cover_movement',
-        'function_cover',
-        'function_extra',
-        'function_selection',
-        'function_slot',
-        'function_space',
-        'house_calendar',
-        'id_sequence',
-        'ingredient',
-        'invoice',
-        'invoice_function',
-        'invoice_payment',
-        'labour_rate',
-        'menu_item',
-        'menu_item_allergen',
-        'menu_item_diet',
-        'menu_package',
-        'package_course',
-        'package_course_item',
-        'price_book',
-        'price_line',
-        'property',
-        'recipe',
-        'recipe_line',
-        'requisition',
-        'requisition_line',
-        'schema_migration',
-        'shift',
-        'space_capacity',
-        'space_component',
-        'special_meal',
-        'staffing_rule',
-        'tax_profile',
-        'tax_rate',
-      ]);
+      // Derived from the migrations rather than typed out, so a new table
+      // cannot be added without the runner having actually created it.
+      const declared = MIGRATIONS.flatMap((migration) =>
+        migration.statements
+          .map((statement) => /create table (?:if not exists )?(\w+)/i.exec(statement)?.[1])
+          .filter((name): name is string => name !== undefined),
+      );
+      expect(tableNames(db)).toEqual([...declared, 'schema_migration'].sort());
     });
   });
 

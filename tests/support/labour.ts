@@ -3,6 +3,7 @@
  */
 
 import { setLabourRate, setStaffingRule } from '../../src/labour/staffing.js';
+import { setTemplateStep } from '../../src/timeline/runofshow.js';
 import type { Database } from '../../src/store/database.js';
 import { CANYON } from './fixtures.js';
 
@@ -61,4 +62,34 @@ export function seedLabourRates(db: Database): void {
 export function seedLabour(db: Database): void {
   seedStaffingRules(db);
   seedLabourRates(db);
+}
+
+export function seedTimelineTemplate(db: Database): void {
+  const steps = [
+    {
+      sequence: 1,
+      label: 'crew in, room set',
+      anchor: 'SETUP',
+      offsetMinutes: 0,
+      owner: 'HOUSEMAN',
+    },
+    { sequence: 2, label: 'mise en place', anchor: 'DOORS', offsetMinutes: -180, owner: 'CHEF' },
+    {
+      sequence: 3,
+      label: 'plate up starts',
+      anchor: 'SERVICE',
+      offsetMinutes: 0,
+      perCoverSeconds: 20,
+      owner: 'CHEF',
+    },
+    { sequence: 4, label: 'doors open', anchor: 'DOORS', offsetMinutes: 0, owner: 'CAPTAIN' },
+    { sequence: 5, label: 'guests seated', anchor: 'SERVICE', offsetMinutes: 0, owner: 'CAPTAIN' },
+    { sequence: 6, label: 'main fired', anchor: 'SERVICE', offsetMinutes: 45, owner: 'CHEF' },
+    { sequence: 7, label: 'dessert away', anchor: 'SERVICE', offsetMinutes: 105, owner: 'CHEF' },
+    { sequence: 8, label: 'bar closes', anchor: 'CLOSE', offsetMinutes: -30, owner: 'BARTENDER' },
+    { sequence: 9, label: 'room struck', anchor: 'TEARDOWN', offsetMinutes: 0, owner: 'HOUSEMAN' },
+  ];
+  for (const step of steps) {
+    setTemplateStep(db, CANYON, { serviceStyle: 'PLATED', ...step });
+  }
 }
