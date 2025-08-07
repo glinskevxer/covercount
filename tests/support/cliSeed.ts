@@ -181,3 +181,36 @@ export function seedReceptionCapacityThroughCli(cli: CliHarness): void {
     '350',
   );
 }
+
+export function seedRunSheetThroughCli(cli: CliHarness): void {
+  const p = ['--property', 'CANYON'];
+  const steps: [string, string, string, string, string, string][] = [
+    ['1', 'crew in, room set', 'SETUP', '0', '0', 'HOUSEMAN'],
+    ['2', 'mise en place', 'DOORS', '-180', '0', 'CHEF'],
+    ['3', 'plate up starts', 'SERVICE', '0', '20', 'CHEF'],
+    ['4', 'doors open', 'DOORS', '0', '0', 'CAPTAIN'],
+    ['5', 'main fired', 'SERVICE', '45', '0', 'CHEF'],
+    ['6', 'room struck', 'TEARDOWN', '0', '0', 'HOUSEMAN'],
+  ];
+  for (const [sequence, label, anchor, offset, perCover, owner] of steps) {
+    cli.run(
+      'runsheet',
+      'step',
+      ...p,
+      '--style',
+      'PLATED',
+      '--sequence',
+      sequence,
+      '--label',
+      label,
+      '--anchor',
+      anchor,
+      '--offset',
+      offset,
+      '--per-cover',
+      perCover,
+      '--owner',
+      owner,
+    );
+  }
+}
