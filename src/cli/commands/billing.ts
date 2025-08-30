@@ -6,7 +6,6 @@ import type { Command } from 'commander';
 import { catalogCode, parseEntityId } from '../../core/ids.js';
 import { formatMoney, parseMoney } from '../../core/money.js';
 import { formatRate } from '../../core/rate.js';
-import { invalidInput } from '../../core/errors.js';
 import { createTaxProfile, listTaxProfiles, setTaxRate, taxRates } from '../../billing/tax.js';
 import {
   addCharge,
@@ -26,27 +25,8 @@ import {
   requireInvoice,
 } from '../../billing/invoice.js';
 import { render, renderRecord } from '../output.js';
+import { entityArg, percentToPpm, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
-
-function slotId(value: string) {
-  return parseEntityId('functionSlot', value);
-}
-
-function percentToPpm(label: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    throw invalidInput('cli.rate', `${label} takes a percentage, got ${value}`);
-  }
-  return Math.round(parsed * 10_000);
-}
-
-function wholeNumber(label: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    throw invalidInput('cli.number', `${label} takes a whole number, got ${value}`);
-  }
-  return parsed;
-}
 
 export function registerTaxCommands(program: Command, makeContext: () => CliContext): void {
   const tax = program.command('tax').description('tax profiles and the rates in them');
@@ -162,7 +142,7 @@ export function registerChargeCommands(program: Command, makeContext: () => CliC
     .action((options: Record<string, string | boolean>) => {
       const context = makeContext();
       withOpenStore(context, (db) => {
-        const line = addCharge(db, slotId(String(options.function ?? '')), {
+        const line = addCharge(db, entityArg('functionSlot', String(options.function ?? '')), {
           category: String(options.category ?? ''),
           description: String(options.description ?? ''),
           quantity: wholeNumber('quantity', String(options.quantity ?? '')),
@@ -196,7 +176,7 @@ export function registerChargeCommands(program: Command, makeContext: () => CliC
     .action((options: Record<string, string>) => {
       const context = makeContext();
       withOpenStore(context, (db) => {
-        const drawn = drawPackageCharges(db, slotId(options.function ?? ''));
+        const drawn = drawPackageCharges(db, entityArg('functionSlot', options.function ?? ''));
         context.write(
           render(
             drawn.map((row) => ({
@@ -223,7 +203,7 @@ export function registerChargeCommands(program: Command, makeContext: () => CliC
       withOpenStore(context, (db) => {
         const line = addUpcharge(
           db,
-          slotId(options.function ?? ''),
+          entityArg('functionSlot', options.function ?? ''),
           options.item ?? '',
           wholeNumber('covers', options.covers ?? ''),
         );
@@ -253,7 +233,7 @@ export function registerChargeCommands(program: Command, makeContext: () => CliC
         (db) => {
           context.write(
             render(
-              listCharges(db, slotId(options.function ?? '')).map((row) => ({
+              listCharges(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
                 id: row.id,
                 category: row.category,
                 description: row.description,

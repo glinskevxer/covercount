@@ -4,9 +4,6 @@
  */
 
 import type { Command } from 'commander';
-import { parseEntityId } from '../../core/ids.js';
-import { invalidInput } from '../../core/errors.js';
-import { isServiceStyle } from '../../property/types.js';
 import {
   anchorsFor,
   computeRunOfShow,
@@ -19,27 +16,8 @@ import {
   unpinStep,
 } from '../../timeline/runofshow.js';
 import { render, renderRecord } from '../output.js';
+import { entityArg, serviceStyleArg, wholeSigned } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
-
-function slotId(value: string) {
-  return parseEntityId('functionSlot', value);
-}
-
-function wholeNumber(label: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed)) {
-    throw invalidInput('cli.number', `${label} takes a whole number, got ${value}`);
-  }
-  return parsed;
-}
-
-function serviceStyle(value: string) {
-  const style = value.trim().toUpperCase();
-  if (!isServiceStyle(style)) {
-    throw invalidInput('cli.style', `${value} is not a service style`);
-  }
-  return style;
-}
 
 export function registerTemplateCommands(program: Command, makeContext: () => CliContext): void {
   const template = program.command('runsheet').description('the run of show template');
@@ -59,11 +37,11 @@ export function registerTemplateCommands(program: Command, makeContext: () => Cl
       withOpenStore(context, (db) => {
         const step = setTemplateStep(db, context.requireProperty(), {
           serviceStyle: options.style ?? '',
-          sequence: wholeNumber('sequence', options.sequence ?? ''),
+          sequence: wholeSigned('sequence', options.sequence ?? ''),
           label: options.label ?? '',
           anchor: options.anchor ?? '',
-          offsetMinutes: wholeNumber('offset', options.offset ?? '0'),
-          perCoverSeconds: wholeNumber('per cover', options.perCover ?? '0'),
+          offsetMinutes: wholeSigned('offset', options.offset ?? '0'),
+          perCoverSeconds: wholeSigned('per cover', options.perCover ?? '0'),
           owner: options.owner ?? '',
         });
         context.write(
@@ -94,7 +72,7 @@ export function registerTemplateCommands(program: Command, makeContext: () => Cl
         (db) => {
           context.write(
             render(
-              listTemplate(db, context.requireProperty(), serviceStyle(options.style ?? '')).map(
+              listTemplate(db, context.requireProperty(), serviceStyleArg(options.style ?? '')).map(
                 (row) => ({
                   sequence: row.sequence,
                   label: row.label,
@@ -127,7 +105,7 @@ export function registerTimelineCommands(program: Command, makeContext: () => Cl
         (db) => {
           context.write(
             renderRecord(
-              { ...anchorsFor(db, slotId(options.function ?? '')) },
+              { ...anchorsFor(db, entityArg('functionSlot', options.function ?? '')) },
               { format: context.format },
             ),
           );
@@ -146,10 +124,10 @@ export function registerTimelineCommands(program: Command, makeContext: () => Cl
       withOpenStore(
         context,
         (db) => {
-          const steps = computeRunOfShow(db, slotId(options.function ?? ''), {
+          const steps = computeRunOfShow(db, entityArg('functionSlot', options.function ?? ''), {
             ...(options.covers === undefined
               ? {}
-              : { covers: wholeNumber('covers', options.covers) }),
+              : { covers: wholeSigned('covers', options.covers) }),
           });
           context.write(
             context.format === 'json'
@@ -168,7 +146,7 @@ export function registerTimelineCommands(program: Command, makeContext: () => Cl
     .action((options: Record<string, string>) => {
       const context = makeContext();
       withOpenStore(context, (db) => {
-        const steps = saveRunOfShow(db, slotId(options.function ?? ''));
+        const steps = saveRunOfShow(db, entityArg('functionSlot', options.function ?? ''));
         context.write(
           context.format === 'json' ? JSON.stringify(steps, null, 2) : renderRunOfShow(steps),
         );
@@ -184,7 +162,7 @@ export function registerTimelineCommands(program: Command, makeContext: () => Cl
       withOpenStore(
         context,
         (db) => {
-          const steps = listRunOfShow(db, slotId(options.function ?? ''));
+          const steps = listRunOfShow(db, entityArg('functionSlot', options.function ?? ''));
           context.write(
             context.format === 'json' ? JSON.stringify(steps, null, 2) : renderRunOfShow(steps),
           );
@@ -205,9 +183,9 @@ export function registerTimelineCommands(program: Command, makeContext: () => Cl
       withOpenStore(context, (db) => {
         const steps = pinStep(
           db,
-          slotId(options.function ?? ''),
-          wholeNumber('sequence', options.sequence ?? ''),
-          wholeNumber('minute', options.minute ?? ''),
+          entityArg('functionSlot', options.function ?? ''),
+          wholeSigned('sequence', options.sequence ?? ''),
+          wholeSigned('minute', options.minute ?? ''),
           options.note ?? '',
         );
         context.write(
@@ -226,8 +204,8 @@ export function registerTimelineCommands(program: Command, makeContext: () => Cl
       withOpenStore(context, (db) => {
         const steps = unpinStep(
           db,
-          slotId(options.function ?? ''),
-          wholeNumber('sequence', options.sequence ?? ''),
+          entityArg('functionSlot', options.function ?? ''),
+          wholeSigned('sequence', options.sequence ?? ''),
         );
         context.write(
           context.format === 'json' ? JSON.stringify(steps, null, 2) : renderRunOfShow(steps),

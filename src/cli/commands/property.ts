@@ -29,15 +29,8 @@ import {
   physicalFootprint,
 } from '../../property/combinations.js';
 import { render, renderRecord } from '../output.js';
+import { wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
-
-function wholeNumber(label: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    throw invalidInput('cli.number', `${label} takes a whole number, got ${value}`);
-  }
-  return parsed;
-}
 
 export function registerPropertyCommands(program: Command, makeContext: () => CliContext): void {
   const property = program.command('property').description('the property and its rooms');

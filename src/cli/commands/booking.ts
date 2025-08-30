@@ -4,7 +4,7 @@
  */
 
 import type { Command } from 'commander';
-import { catalogCode, parseEntityId } from '../../core/ids.js';
+import { catalogCode } from '../../core/ids.js';
 import { calendarDate } from '../../core/calendar.js';
 import { invalidInput } from '../../core/errors.js';
 import {
@@ -28,11 +28,8 @@ import {
 } from '../../booking/lifecycle.js';
 import { listFunctions } from '../../booking/functions.js';
 import { render, renderRecord } from '../output.js';
+import { entityArg } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
-
-function bookingId(value: string) {
-  return parseEntityId('booking', value);
-}
 
 export function registerAccountCommands(program: Command, makeContext: () => CliContext): void {
   const account = program.command('account').description('the accounts we book from');
@@ -246,7 +243,7 @@ export function registerBookingCommands(program: Command, makeContext: () => Cli
       withOpenStore(
         context,
         (db) => {
-          const id = bookingId(options.id ?? '');
+          const id = entityArg('booking', options.id ?? '');
           const found = requireBooking(db, id);
           const functions = listFunctions(db, id);
           context.write(
@@ -295,7 +292,7 @@ export function registerBookingChangeCommands(
             : { accountCode: options.account.toLowerCase() === 'none' ? null : options.account };
         const updated = updateBooking(
           db,
-          bookingId(options.id ?? ''),
+          entityArg('booking', options.id ?? ''),
           {
             ...(options.postAs === undefined ? {} : { postAs: options.postAs }),
             ...(options.arrival === undefined ? {} : { arrivalDate: options.arrival }),
@@ -331,7 +328,7 @@ export function registerBookingChangeCommands(
     .action((options: Record<string, string>) => {
       const context = makeContext();
       withOpenStore(context, (db) => {
-        const id = bookingId(options.id ?? '');
+        const id = entityArg('booking', options.id ?? '');
         const to = (options.to ?? '').trim().toUpperCase();
         const now = context.now();
         let updated;
@@ -374,7 +371,7 @@ export function registerBookingChangeCommands(
         (db) => {
           context.write(
             render(
-              listEvents(db, bookingId(options.id ?? '')).map((row) => ({
+              listEvents(db, entityArg('booking', options.id ?? '')).map((row) => ({
                 seq: row.seq,
                 at: row.occurredAt,
                 actor: row.actor,

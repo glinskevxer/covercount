@@ -16,32 +16,8 @@ import {
 import { findClashes, functionsOnDate } from '../../booking/diary.js';
 import { isFunctionStatus } from '../../booking/types.js';
 import { render, renderRecord } from '../output.js';
+import { blockMinute, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
-
-function wholeNumber(label: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    throw invalidInput('cli.number', `${label} takes a whole number, got ${value}`);
-  }
-  return parsed;
-}
-
-/** A time on the clock, or one past midnight written as 25:30. */
-export function blockMinute(label: string, value: string): number {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
-  if (match === null) {
-    throw invalidInput('cli.time', `${label} takes a time in HH:MM form, got ${value}`);
-  }
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  if (minutes > 59) {
-    throw invalidInput('cli.time', `${value} names minute ${minutes}`);
-  }
-  if (hours > 35) {
-    throw invalidInput('cli.time', `${value} is too far into the following day`);
-  }
-  return hours * 60 + minutes;
-}
 
 export function registerFunctionCommands(program: Command, makeContext: () => CliContext): void {
   const fn = program.command('function').description('the functions inside a booking');

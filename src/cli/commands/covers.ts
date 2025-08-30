@@ -4,9 +4,7 @@
  */
 
 import type { Command } from 'commander';
-import { parseEntityId } from '../../core/ids.js';
 import { formatZoned } from '../../core/clock.js';
-import { invalidInput } from '../../core/errors.js';
 import {
   billedCovers,
   listMovements,
@@ -26,19 +24,8 @@ import {
   removeSpecialMeal,
 } from '../../covers/special.js';
 import { render, renderRecord } from '../output.js';
+import { entityArg, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
-
-function slotId(value: string) {
-  return parseEntityId('functionSlot', value);
-}
-
-function wholeNumber(label: string, value: string): number {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed < 0) {
-    throw invalidInput('cli.number', `${label} takes a whole number, got ${value}`);
-  }
-  return parsed;
-}
 
 export function registerCoverCommands(program: Command, makeContext: () => CliContext): void {
   const covers = program.command('covers').description('the guarantee and what was served');
@@ -53,7 +40,7 @@ export function registerCoverCommands(program: Command, makeContext: () => CliCo
     .action((options: Record<string, string>) => {
       const context = makeContext();
       withOpenStore(context, (db) => {
-        const opened = openCovers(db, slotId(options.function ?? ''), {
+        const opened = openCovers(db, entityArg('functionSlot', options.function ?? ''), {
           contractDate: options.contract ?? '',
           ...(options.package === undefined ? {} : { packageCode: options.package }),
           ...(options.book === undefined ? {} : { priceBookCode: options.book }),
@@ -85,7 +72,7 @@ export function registerCoverCommands(program: Command, makeContext: () => CliCo
       withOpenStore(context, (db) => {
         const updated = setGuarantee(
           db,
-          slotId(String(options.function ?? '')),
+          entityArg('functionSlot', String(options.function ?? '')),
           wholeNumber('covers', String(options.covers ?? '')),
           context.now(),
           context.actor,
@@ -118,7 +105,7 @@ export function registerCoverCommands(program: Command, makeContext: () => CliCo
       withOpenStore(context, (db) => {
         const updated = recordServed(
           db,
-          slotId(options.function ?? ''),
+          entityArg('functionSlot', options.function ?? ''),
           wholeNumber('covers', options.covers ?? ''),
           context.now(),
         );
@@ -151,7 +138,7 @@ export function registerCoverReadCommands(program: Command, makeContext: () => C
       withOpenStore(
         context,
         (db) => {
-          const id = slotId(options.function ?? '');
+          const id = entityArg('functionSlot', options.function ?? '');
           const covers = requireCovers(db, id);
           const breakdown = coverBreakdown(db, id);
           context.write(
@@ -185,7 +172,7 @@ export function registerCoverReadCommands(program: Command, makeContext: () => C
         (db) => {
           context.write(
             render(
-              listMovements(db, slotId(options.function ?? '')).map((row) => ({
+              listMovements(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
                 seq: row.seq,
                 at: row.occurredAt,
                 actor: row.actor,
@@ -233,7 +220,7 @@ export function registerSpecialMealCommands(program: Command, makeContext: () =>
       withOpenStore(context, (db) => {
         const meal = addSpecialMeal(
           db,
-          slotId(options.function ?? ''),
+          entityArg('functionSlot', options.function ?? ''),
           {
             guestName: options.guest ?? '',
             covers: wholeNumber('covers', options.covers ?? '1'),
@@ -273,15 +260,17 @@ export function registerSpecialMealCommands(program: Command, makeContext: () =>
         (db) => {
           context.write(
             render(
-              listSpecialMeals(db, slotId(options.function ?? '')).map((row) => ({
-                id: row.id,
-                guest: row.guestName,
-                covers: row.covers,
-                diet: row.diet ?? '',
-                avoids: row.allergens.join(', '),
-                substitute: row.substituteItemCode ?? '',
-                note: row.note,
-              })),
+              listSpecialMeals(db, entityArg('functionSlot', options.function ?? '')).map(
+                (row) => ({
+                  id: row.id,
+                  guest: row.guestName,
+                  covers: row.covers,
+                  diet: row.diet ?? '',
+                  avoids: row.allergens.join(', '),
+                  substitute: row.substituteItemCode ?? '',
+                  note: row.note,
+                }),
+              ),
               { format: context.format, empty: 'no special meals on that function' },
             ),
           );

@@ -6,7 +6,6 @@
 
 import type { Command } from 'commander';
 import { calendarDate } from '../../core/calendar.js';
-import { parseEntityId } from '../../core/ids.js';
 import {
   packsByStore,
   pickList,
@@ -23,11 +22,8 @@ import {
   staffingSheet,
 } from '../../reports/house.js';
 import { render } from '../output.js';
+import { entityArg } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
-
-function slotId(value: string) {
-  return parseEntityId('functionSlot', value);
-}
 
 export function registerReportCommands(program: Command, makeContext: () => CliContext): void {
   const report = program.command('sheet').description('the sheets people print');
@@ -41,7 +37,7 @@ export function registerReportCommands(program: Command, makeContext: () => CliC
       withOpenStore(
         context,
         (db) => {
-          const sheet = productionSheet(db, slotId(options.function ?? ''));
+          const sheet = productionSheet(db, entityArg('functionSlot', options.function ?? ''));
           context.write(
             context.format === 'json'
               ? JSON.stringify(sheet, null, 2)

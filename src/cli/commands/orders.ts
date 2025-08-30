@@ -26,11 +26,8 @@ import {
 } from '../../orders/changes.js';
 import { requireProperty } from '../../property/store.js';
 import { render, renderRecord } from '../output.js';
+import { entityArg } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
-
-function slotId(value: string) {
-  return parseEntityId('functionSlot', value);
-}
 
 export function registerOrderCommands(program: Command, makeContext: () => CliContext): void {
   const order = program.command('order').description('the banquet event order');
@@ -44,7 +41,7 @@ export function registerOrderCommands(program: Command, makeContext: () => CliCo
       withOpenStore(
         context,
         (db) => {
-          const assembled = assembleOrder(db, slotId(options.function ?? ''));
+          const assembled = assembleOrder(db, entityArg('functionSlot', options.function ?? ''));
           context.write(
             context.format === 'json' ? JSON.stringify(assembled, null, 2) : renderOrder(assembled),
           );
@@ -63,7 +60,7 @@ export function registerOrderCommands(program: Command, makeContext: () => CliCo
       withOpenStore(context, (db) => {
         const drawn = drawRevision(
           db,
-          slotId(options.function ?? ''),
+          entityArg('functionSlot', options.function ?? ''),
           context.now(),
           context.actor,
           options.note ?? '',
@@ -109,7 +106,7 @@ export function registerOrderCommands(program: Command, makeContext: () => CliCo
         (db) => {
           context.write(
             render(
-              listRevisions(db, slotId(options.function ?? '')).map((row) => ({
+              listRevisions(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
                 id: row.id,
                 revision: row.revision,
                 status: row.status,
@@ -171,7 +168,7 @@ export function registerOrderCommands(program: Command, makeContext: () => CliCo
       withOpenStore(
         context,
         (db) => {
-          const functionId = slotId(options.function ?? '');
+          const functionId = entityArg('functionSlot', options.function ?? '');
           const live = liveRevision(db, functionId);
           if (live === undefined) {
             context.write('no sheet has been drawn yet');
@@ -211,7 +208,7 @@ export function registerChangeCommands(program: Command, makeContext: () => CliC
       withOpenStore(context, (db) => {
         const raised = raiseChangeOrder(
           db,
-          slotId(options.function ?? ''),
+          entityArg('functionSlot', options.function ?? ''),
           {
             reason: options.reason ?? '',
             raisedBy: context.actor,
@@ -271,14 +268,16 @@ export function registerChangeCommands(program: Command, makeContext: () => CliC
         (db) => {
           context.write(
             render(
-              listChangeOrders(db, slotId(options.function ?? '')).map((row) => ({
-                id: row.id,
-                status: row.status,
-                afterCutoff: row.afterCutoff,
-                fee: formatMoney(row.fee),
-                raisedBy: row.raisedBy,
-                reason: row.reason,
-              })),
+              listChangeOrders(db, entityArg('functionSlot', options.function ?? '')).map(
+                (row) => ({
+                  id: row.id,
+                  status: row.status,
+                  afterCutoff: row.afterCutoff,
+                  fee: formatMoney(row.fee),
+                  raisedBy: row.raisedBy,
+                  reason: row.reason,
+                }),
+              ),
               { format: context.format, empty: 'nothing has been changed on that function' },
             ),
           );
