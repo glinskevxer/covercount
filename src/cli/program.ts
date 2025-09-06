@@ -41,6 +41,7 @@ import {
 import { registerChangeCommands, registerOrderCommands } from './commands/orders.js';
 import { registerTemplateCommands, registerTimelineCommands } from './commands/timeline.js';
 import { registerReportCommands } from './commands/reports.js';
+import { registerServeCommands } from './commands/serve.js';
 
 export const VERSION = '0.1.0';
 
@@ -90,6 +91,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerTemplateCommands(program, makeContext);
   registerTimelineCommands(program, makeContext);
   registerReportCommands(program, makeContext);
+  registerServeCommands(program, makeContext);
   return program;
 }
 
