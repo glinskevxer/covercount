@@ -34,7 +34,21 @@ export default tseslint.config(
     },
   },
   {
-    files: ['*.js', '*.mjs'],
+    // Build scripts run under node directly and are not part of the tsconfig
+    // project, so they lint without type information.
+    files: ['*.js', '*.mjs', 'scripts/**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        URL: 'readonly',
+        Buffer: 'readonly',
+      },
+      parserOptions: {
+        projectService: false,
+        project: false,
+      },
+    },
   },
 );

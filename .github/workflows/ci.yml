@@ -1,0 +1,119 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22.13.1'
+
+jobs:
+  lint:
+    name: lint and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: eslint
+        run: npx eslint . --max-warnings 0
+      - name: prettier
+        run: npx prettier --check .
+
+  types:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: tsc
+        run: npx tsc --noEmit
+
+  build:
+    name: build and run the cli
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: build
+        run: npm run build
+      - name: the built cli answers
+        run: |
+          node dist/src/cli/main.js --version
+          node dist/src/cli/main.js --help
+          node dist/src/cli/main.js store migrations
+      - name: the built cli builds a store
+        run: |
+          node dist/src/cli/main.js --store /tmp/ci.covercount.db store init
+          node dist/src/cli/main.js --store /tmp/ci.covercount.db store status
+      - name: declarations are expressible
+        run: test -f dist/src/cli/main.d.ts
+
+  test:
+    name: tests on node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20.18.1', '22.13.1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: vitest
+        run: npm test -- --reporter=dot
+      - name: the engines field is honest
+        run: node -e "const p=require('./package.json');const semver=process.versions.node;console.log('running',semver,'engines',p.engines.node)"
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: vitest with the floor enforced
+        run: npm run coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  audit:
+    name: dependency advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: npm audit
+        run: npm audit --audit-level=high
+      - name: every dependency is pinned
+        run: node scripts/check-pins.mjs
