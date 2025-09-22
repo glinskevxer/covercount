@@ -17,6 +17,7 @@ import { migration007 } from './migrations/007-labour.js';
 import { migration008 } from './migrations/008-charges.js';
 import { migration009 } from './migrations/009-orders.js';
 import { migration010 } from './migrations/010-timeline.js';
+import { migration011 } from './migrations/011-equipment.js';
 import { migrate, schemaVersion, type MigrateResult } from './migrate.js';
 import { openDatabase, type Database, type OpenDatabaseOptions } from './database.js';
 
@@ -31,6 +32,7 @@ export const MIGRATIONS: readonly Migration[] = [
   migration008,
   migration009,
   migration010,
+  migration011,
 ];
 
 export const TARGET_SCHEMA_VERSION = MIGRATIONS.reduce(
