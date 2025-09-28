@@ -42,6 +42,7 @@ import { registerChangeCommands, registerOrderCommands } from './commands/orders
 import { registerTemplateCommands, registerTimelineCommands } from './commands/timeline.js';
 import { registerReportCommands } from './commands/reports.js';
 import { registerServeCommands } from './commands/serve.js';
+import { registerEquipmentCommands, registerPullCommands } from './commands/equipment.js';
 
 export const VERSION = '0.1.0';
 
@@ -92,6 +93,8 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerTimelineCommands(program, makeContext);
   registerReportCommands(program, makeContext);
   registerServeCommands(program, makeContext);
+  registerEquipmentCommands(program, makeContext);
+  registerPullCommands(program, makeContext);
   return program;
 }
 
