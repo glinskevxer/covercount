@@ -17,6 +17,7 @@ import { isCurrencyCode, money, type Money } from '../core/money.js';
 import { isServiceStyle, type ServiceStyle } from '../property/types.js';
 import { requireProperty } from '../property/store.js';
 import type { Database } from '../store/database.js';
+import { LABOUR_RATES, seriesFor, valueOn } from '../store/effective.js';
 import { isRole, isSupervisory, type LabourRate, type Role, type StaffingRule } from './types.js';
 
 interface RuleRow {
@@ -229,14 +230,8 @@ export function findLabourRate(
   on: CalendarDate,
 ): Money | undefined {
   const property = requireProperty(db, propertyCode);
-  const row = db
-    .prepare<[string, string, string], { hourly_minor: number }>(
-      `select hourly_minor from labour_rate
-       where property_code = ? and role = ? and effective_from <= ?
-       order by effective_from desc limit 1`,
-    )
-    .get(propertyCode, role, on);
-  return row === undefined ? undefined : money(row.hourly_minor, property.currency);
+  const minor = valueOn(db, LABOUR_RATES, [propertyCode, role], on);
+  return minor === undefined ? undefined : money(minor, property.currency);
 }
 
 export function requireLabourRate(
@@ -258,17 +253,11 @@ export function labourRateHistory(
   role: Role,
 ): LabourRate[] {
   const property = requireProperty(db, propertyCode);
-  return db
-    .prepare<[string, string], { effective_from: string; hourly_minor: number }>(
-      `select effective_from, hourly_minor from labour_rate
-       where property_code = ? and role = ? order by effective_from`,
-    )
-    .all(propertyCode, role)
-    .map((row) => ({
-      role,
-      effectiveFrom: calendarDate(row.effective_from),
-      hourly: money(row.hourly_minor, property.currency),
-    }));
+  return seriesFor(db, LABOUR_RATES, [propertyCode, role]).map((row) => ({
+    role,
+    effectiveFrom: row.effectiveFrom,
+    hourly: money(row.value, property.currency),
+  }));
 }
 
 /** Whether a rate change lands before a function that is already sold. */

@@ -14,6 +14,7 @@ import { catalogCode, type CatalogCode } from '../core/ids.js';
 import { isCurrencyCode, money, type CurrencyCode, type Money } from '../core/money.js';
 import { requireProperty } from '../property/store.js';
 import type { Database } from '../store/database.js';
+import { PRICE_LINES, seriesFor, tableOn, valueOn } from '../store/effective.js';
 import { requireItem } from './items.js';
 import { requirePackage } from './packages.js';
 import { isPriceSubject, type PriceBook, type PriceLine, type PriceSubject } from './types.js';
@@ -24,14 +25,6 @@ interface BookRow {
   name: string;
   currency: string;
   created_at: string;
-}
-
-interface LineRow {
-  book_code: string;
-  subject_kind: string;
-  subject_code: string;
-  effective_from: string;
-  price_minor: number;
 }
 
 function toBook(row: BookRow): PriceBook {
@@ -179,15 +172,8 @@ export function findPriceOn(
   on: CalendarDate,
 ): Money | undefined {
   const book = requirePriceBook(db, propertyCode, bookCode);
-  const row = db
-    .prepare<[string, string, string, string, string], { price_minor: number }>(
-      `select price_minor from price_line
-       where property_code = ? and book_code = ? and subject_kind = ? and subject_code = ?
-         and effective_from <= ?
-       order by effective_from desc limit 1`,
-    )
-    .get(propertyCode, bookCode, subjectKind, subjectCode, on);
-  return row === undefined ? undefined : money(row.price_minor, book.currency);
+  const minor = valueOn(db, PRICE_LINES, [propertyCode, bookCode, subjectKind, subjectCode], on);
+  return minor === undefined ? undefined : money(minor, book.currency);
 }
 
 export function requirePriceOn(
@@ -217,21 +203,15 @@ export function priceHistory(
   subjectCode: CatalogCode,
 ): PriceLine[] {
   const book = requirePriceBook(db, propertyCode, bookCode);
-  return db
-    .prepare<[string, string, string, string], LineRow>(
-      `select book_code, subject_kind, subject_code, effective_from, price_minor
-       from price_line
-       where property_code = ? and book_code = ? and subject_kind = ? and subject_code = ?
-       order by effective_from`,
-    )
-    .all(propertyCode, bookCode, subjectKind, subjectCode)
-    .map((row) => ({
-      bookCode: catalogCode(row.book_code),
-      subjectKind: row.subject_kind as PriceSubject,
-      subjectCode: catalogCode(row.subject_code),
-      effectiveFrom: calendarDate(row.effective_from),
-      price: money(row.price_minor, book.currency),
-    }));
+  return seriesFor(db, PRICE_LINES, [propertyCode, bookCode, subjectKind, subjectCode]).map(
+    (row) => ({
+      bookCode,
+      subjectKind,
+      subjectCode,
+      effectiveFrom: row.effectiveFrom,
+      price: money(row.value, book.currency),
+    }),
+  );
 }
 
 /** Every price a book carries on one date, for printing the book itself. */
@@ -242,23 +222,15 @@ export function bookOn(
   on: CalendarDate,
 ): PriceLine[] {
   const book = requirePriceBook(db, propertyCode, bookCode);
-  return db
-    .prepare<[string, string, string], LineRow>(
-      `select book_code, subject_kind, subject_code, max(effective_from) as effective_from,
-        price_minor
-       from price_line
-       where property_code = ? and book_code = ? and effective_from <= ?
-       group by subject_kind, subject_code
-       order by subject_kind, subject_code`,
-    )
-    .all(propertyCode, bookCode, on)
-    .map((row) => ({
-      bookCode: catalogCode(row.book_code),
-      subjectKind: row.subject_kind as PriceSubject,
-      subjectCode: catalogCode(row.subject_code),
-      effectiveFrom: calendarDate(row.effective_from),
-      price: money(row.price_minor, book.currency),
-    }));
+  return tableOn(db, PRICE_LINES, [propertyCode, bookCode], ['property_code', 'book_code'], on).map(
+    (row) => ({
+      bookCode,
+      subjectKind: (row.keys[2] ?? 'ITEM') as PriceSubject,
+      subjectCode: catalogCode(row.keys[3] ?? ''),
+      effectiveFrom: row.effectiveFrom,
+      price: money(row.value, book.currency),
+    }),
+  );
 }
 
 export function removePrice(
