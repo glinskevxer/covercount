@@ -10,7 +10,11 @@
 import { Command } from 'commander';
 import { describeError, isDomainError } from '../core/errors.js';
 import { buildContext, type CliContext, type CliEnvironment } from './context.js';
-import { registerBackupCommands, registerStoreCommands } from './commands/store.js';
+import {
+  registerBackupCommands,
+  registerDemoCommands,
+  registerStoreCommands,
+} from './commands/store.js';
 import {
   registerCalendarCommands,
   registerCombinationCommands,
@@ -72,6 +76,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
 
   registerStoreCommands(program, makeContext);
   registerBackupCommands(program, makeContext);
+  registerDemoCommands(program, makeContext);
   registerPropertyCommands(program, makeContext);
   registerSpaceCommands(program, makeContext);
   registerCombinationCommands(program, makeContext);

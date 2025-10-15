@@ -11,6 +11,7 @@ import { MIGRATIONS, TARGET_SCHEMA_VERSION, storeVersion } from '../../store/sch
 import { render, renderRecord } from '../output.js';
 import { withOpenStore, type CliContext } from '../context.js';
 import { backupIsCurrent, backupTo, readBackup } from '../../store/backup.js';
+import { seedDemoProperty } from '../../demo/property.js';
 
 export function registerStoreCommands(program: Command, makeContext: () => CliContext): void {
   const store = program.command('store').description('the property store file');
@@ -165,5 +166,32 @@ export function registerBackupCommands(program: Command, makeContext: () => CliC
           },
         ),
       );
+    });
+}
+
+export function registerDemoCommands(program: Command, makeContext: () => CliContext): void {
+  const demo = program.command('demo').description('a property to look at');
+
+  demo
+    .command('seed')
+    .description('build a whole property, rooms, menu, kitchen, crew and rates')
+    .action(() => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const result = seedDemoProperty(db, context.now());
+        context.write(
+          renderRecord(
+            {
+              property: result.propertyCode,
+              rooms: result.rooms,
+              items: result.items,
+              packages: result.packages,
+              recipes: result.recipes,
+              equipment: result.equipment,
+            },
+            { format: context.format },
+          ),
+        );
+      });
     });
 }
