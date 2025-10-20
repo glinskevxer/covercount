@@ -21,6 +21,7 @@ import {
   renderStaffingSheet,
   staffingSheet,
 } from '../../reports/house.js';
+import { conferenceResume, renderResume } from '../../reports/resume.js';
 import { render } from '../output.js';
 import { entityArg } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
@@ -147,6 +148,54 @@ export function registerReportCommands(program: Command, makeContext: () => CliC
           );
           context.write(
             context.format === 'json' ? JSON.stringify(sheet, null, 2) : renderStaffingSheet(sheet),
+          );
+        },
+        { readOnly: true },
+      );
+    });
+}
+
+export function registerResumeCommands(program: Command, makeContext: () => CliContext): void {
+  const resume = program.command('resume').description('one booking on one page');
+
+  resume
+    .command('show')
+    .description('every function on a booking with the covers and the money')
+    .requiredOption('--booking <id>', 'the booking')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(
+        context,
+        (db) => {
+          const built = conferenceResume(db, entityArg('booking', options.booking ?? ''));
+          context.write(
+            context.format === 'json' ? JSON.stringify(built, null, 2) : renderResume(built),
+          );
+        },
+        { readOnly: true },
+      );
+    });
+
+  resume
+    .command('open')
+    .description('only what is still open on a booking')
+    .requiredOption('--booking <id>', 'the booking')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(
+        context,
+        (db) => {
+          const built = conferenceResume(db, entityArg('booking', options.booking ?? ''));
+          const rows = built.rows.flatMap((row) =>
+            row.open.map((item) => ({
+              function: row.functionId,
+              date: row.serviceDate,
+              name: row.name,
+              open: item,
+            })),
+          );
+          context.write(
+            render(rows, { format: context.format, empty: 'nothing is open on that booking' }),
           );
         },
         { readOnly: true },

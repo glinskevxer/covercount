@@ -44,7 +44,7 @@ import {
 } from './commands/billing.js';
 import { registerChangeCommands, registerOrderCommands } from './commands/orders.js';
 import { registerTemplateCommands, registerTimelineCommands } from './commands/timeline.js';
-import { registerReportCommands } from './commands/reports.js';
+import { registerReportCommands, registerResumeCommands } from './commands/reports.js';
 import { registerServeCommands } from './commands/serve.js';
 import { registerEquipmentCommands, registerPullCommands } from './commands/equipment.js';
 import { registerAuditCommands } from './commands/audit.js';
@@ -99,6 +99,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerTemplateCommands(program, makeContext);
   registerTimelineCommands(program, makeContext);
   registerReportCommands(program, makeContext);
+  registerResumeCommands(program, makeContext);
   registerServeCommands(program, makeContext);
   registerEquipmentCommands(program, makeContext);
   registerPullCommands(program, makeContext);
