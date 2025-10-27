@@ -12,6 +12,8 @@ import { render, renderRecord } from '../output.js';
 import { withOpenStore, type CliContext } from '../context.js';
 import { backupIsCurrent, backupTo, readBackup } from '../../store/backup.js';
 import { seedDemoProperty } from '../../demo/property.js';
+import { countRows, exportSetup, importSetup, type SetupExport } from '../../store/transfer.js';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 export function registerStoreCommands(program: Command, makeContext: () => CliContext): void {
   const store = program.command('store').description('the property store file');
@@ -189,6 +191,58 @@ export function registerDemoCommands(program: Command, makeContext: () => CliCon
               recipes: result.recipes,
               equipment: result.equipment,
             },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+}
+
+export function registerTransferCommands(program: Command, makeContext: () => CliContext): void {
+  const setup = program.command('setup').description('moving a property between stores');
+
+  setup
+    .command('export')
+    .description('write the property setup out as JSON')
+    .option('--to <path>', 'write to a file instead of standard output')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(
+        context,
+        (db) => {
+          const payload = exportSetup(db, context.requireProperty(), context.now());
+          const json = JSON.stringify(payload, null, 2);
+          if (options.to === undefined) {
+            context.write(json);
+            return;
+          }
+          writeFileSync(options.to, `${json}\n`, 'utf8');
+          context.write(
+            renderRecord(
+              { path: options.to, property: payload.propertyCode, rows: countRows(payload) },
+              { format: context.format },
+            ),
+          );
+        },
+        { readOnly: true },
+      );
+    });
+
+  setup
+    .command('import')
+    .description('read a property setup in, optionally under a new code')
+    .requiredOption('--from <path>', 'the export to read')
+    .option('--as <code>', 'bring it in under a different property code')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const payload = JSON.parse(readFileSync(options.from ?? '', 'utf8')) as SetupExport;
+        const result = importSetup(db, payload, {
+          ...(options.as === undefined ? {} : { asPropertyCode: options.as }),
+        });
+        context.write(
+          renderRecord(
+            { property: result.propertyCode, tables: result.tables, rows: result.rows },
             { format: context.format },
           ),
         );

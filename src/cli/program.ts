@@ -13,6 +13,7 @@ import { buildContext, type CliContext, type CliEnvironment } from './context.js
 import {
   registerBackupCommands,
   registerDemoCommands,
+  registerTransferCommands,
   registerStoreCommands,
 } from './commands/store.js';
 import {
@@ -77,6 +78,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerStoreCommands(program, makeContext);
   registerBackupCommands(program, makeContext);
   registerDemoCommands(program, makeContext);
+  registerTransferCommands(program, makeContext);
   registerPropertyCommands(program, makeContext);
   registerSpaceCommands(program, makeContext);
   registerCombinationCommands(program, makeContext);
