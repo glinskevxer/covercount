@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+# Written by scripts/generate-docs.mjs, never by hand. Marking it generated
+# keeps it out of the language statistics and out of a review diff.
+docs/commands.md linguist-generated=true
+
+*.db binary

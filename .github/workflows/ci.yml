@@ -117,3 +117,16 @@ jobs:
         run: npm audit --audit-level=high
       - name: every dependency is pinned
         run: node scripts/check-pins.mjs
+
+  docs:
+    name: the command reference is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: regenerate and compare
+        run: npm run docs:check

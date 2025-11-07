@@ -21,6 +21,9 @@ npm test -- --reporter=dot
 echo "--- pins"
 node scripts/check-pins.mjs
 
+echo "--- the command reference"
+node scripts/generate-docs.mjs --check
+
 echo "--- the built cli answers"
 node dist/src/cli/main.js --version >/dev/null
 node dist/src/cli/main.js store migrations >/dev/null
