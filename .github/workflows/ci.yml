@@ -117,6 +117,26 @@ jobs:
         run: npm audit --audit-level=high
       - name: every dependency is pinned
         run: node scripts/check-pins.mjs
+      - name: the build is shippable
+        run: |
+          npm run build
+          node scripts/check-release.mjs
+
+  image:
+    name: container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build the image
+        run: docker build -t covercount:ci .
+      - name: the entrypoint answers
+        run: docker run --rm covercount:ci --version
+      - name: the built store opens inside the image
+        run: |
+          docker run --rm covercount:ci store migrations
+          docker run --rm -v /tmp/ci:/data covercount:ci store init
+      - name: the image runs as a non root user
+        run: test "$(docker run --rm --entrypoint id covercount:ci -u)" != "0"
 
   docs:
     name: the command reference is current

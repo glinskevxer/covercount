@@ -23,7 +23,8 @@
     "check": "bash scripts/check.sh",
     "check:pins": "node scripts/check-pins.mjs",
     "docs": "npm run build && node scripts/generate-docs.mjs",
-    "docs:check": "npm run build && node scripts/generate-docs.mjs --check"
+    "docs:check": "npm run build && node scripts/generate-docs.mjs --check",
+    "check:release": "node scripts/check-release.mjs"
   },
   "dependencies": {
     "better-sqlite3": "11.8.1",
