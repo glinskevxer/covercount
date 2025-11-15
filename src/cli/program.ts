@@ -49,6 +49,7 @@ import { registerReportCommands, registerResumeCommands } from './commands/repor
 import { registerServeCommands } from './commands/serve.js';
 import { registerEquipmentCommands, registerPullCommands } from './commands/equipment.js';
 import { registerAuditCommands } from './commands/audit.js';
+import { registerBarCommands, registerBarTierCommands } from './commands/bar.js';
 
 export const VERSION = '0.1.0';
 
@@ -106,6 +107,8 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerEquipmentCommands(program, makeContext);
   registerPullCommands(program, makeContext);
   registerAuditCommands(program, makeContext);
+  registerBarTierCommands(program, makeContext);
+  registerBarCommands(program, makeContext);
   return program;
 }
 

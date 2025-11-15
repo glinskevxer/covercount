@@ -2,3 +2,8 @@ dist/
 coverage/
 node_modules/
 package-lock.json
+
+# Written by scripts/generate-docs.mjs. Its layout is the generator's business,
+# and formatting it here would put the committed file out of step with what the
+# generator writes, which is exactly what docs:check exists to catch.
+docs/commands.md

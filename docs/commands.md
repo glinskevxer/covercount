@@ -6,13 +6,13 @@ Run `npm run docs` after changing a command.
 
 ## Global options
 
-| option                  | what it is                       |
-| ----------------------- | -------------------------------- |
-| `-V, --version`         | output the version number        |
-| `-s, --store <path>`    | path to the property store       |
-| `-p, --property <code>` | property code to work in         |
-| `-f, --format <format>` | table, plain or json             |
-| `-a, --actor <name>`    | who to record the change against |
+| option | what it is |
+| --- | --- |
+| `-V, --version` | output the version number |
+| `-s, --store <path>` | path to the property store |
+| `-p, --property <code>` | property code to work in |
+| `-f, --format <format>` | table, plain or json |
+| `-a, --actor <name>` | who to record the change against |
 
 ## `store`
 
@@ -38,24 +38,24 @@ copies of the store
 
 copy the store consistently, without stopping the office
 
-| option        | what it is                   |
-| ------------- | ---------------------------- |
+| option | what it is |
+| --- | --- |
 | `--to <path>` | where to write it (required) |
 
 ### `backup read`
 
 look inside a backup without migrating it
 
-| option          | what it is            |
-| --------------- | --------------------- |
+| option | what it is |
+| --- | --- |
 | `--path <path>` | the backup (required) |
 
 ### `backup migrations`
 
 the migrations a backup carries
 
-| option          | what it is            |
-| --------------- | --------------------- |
+| option | what it is |
+| --- | --- |
 | `--path <path>` | the backup (required) |
 
 ## `demo`
@@ -74,18 +74,18 @@ moving a property between stores
 
 write the property setup out as JSON
 
-| option        | what it is                                 |
-| ------------- | ------------------------------------------ |
+| option | what it is |
+| --- | --- |
 | `--to <path>` | write to a file instead of standard output |
 
 ### `setup import`
 
 read a property setup in, optionally under a new code
 
-| option          | what it is                                  |
-| --------------- | ------------------------------------------- |
-| `--from <path>` | the export to read (required)               |
-| `--as <code>`   | bring it in under a different property code |
+| option | what it is |
+| --- | --- |
+| `--from <path>` | the export to read (required) |
+| `--as <code>` | bring it in under a different property code |
 
 ## `property`
 
@@ -95,16 +95,16 @@ the property and its rooms
 
 put a property on file
 
-| option                    | what it is                                                    |
-| ------------------------- | ------------------------------------------------------------- |
-| `--code <code>`           | short code for the property (required)                        |
-| `--name <name>`           | the name it trades under (required)                           |
-| `--zone <zone>`           | IANA time zone the ballroom clock runs on (required)          |
-| `--currency <code>`       | currency the property invoices in [default: USD]              |
+| option | what it is |
+| --- | --- |
+| `--code <code>` | short code for the property (required) |
+| `--name <name>` | the name it trades under (required) |
+| `--zone <zone>` | IANA time zone the ballroom clock runs on (required) |
+| `--currency <code>` | currency the property invoices in [default: USD] |
 | `--guarantee-lead <days>` | business days before a function the count closes [default: 3] |
-| `--guarantee-due <time>`  | time of day the count closes, HH:MM [default: 12:00]          |
-| `--overset <percent>`     | how far above the guarantee the room is set [default: 5]      |
-| `--overset-cap <covers>`  | most covers the overset will ever add [default: 25]           |
+| `--guarantee-due <time>` | time of day the count closes, HH:MM [default: 12:00] |
+| `--overset <percent>` | how far above the guarantee the room is set [default: 5] |
+| `--overset-cap <covers>` | most covers the overset will ever add [default: 25] |
 
 ### `property list`
 
@@ -122,15 +122,15 @@ the rooms in the property
 
 put a room on file
 
-| option                 | what it is                                                  |
-| ---------------------- | ----------------------------------------------------------- |
-| `--code <code>`        | short code for the room (required)                          |
-| `--name <name>`        | the name on the door (required)                             |
-| `--fire <covers>`      | the number on the fire certificate (required)               |
-| `--floor <floor>`      | which floor it is on [default: ]                            |
-| `--area <sqft>`        | floor area in square feet [default: 0]                      |
-| `--setup <minutes>`    | minutes the crew needs in front of a function [default: 60] |
-| `--teardown <minutes>` | minutes the crew needs behind it [default: 30]              |
+| option | what it is |
+| --- | --- |
+| `--code <code>` | short code for the room (required) |
+| `--name <name>` | the name on the door (required) |
+| `--fire <covers>` | the number on the fire certificate (required) |
+| `--floor <floor>` | which floor it is on [default: ] |
+| `--area <sqft>` | floor area in square feet [default: 0] |
+| `--setup <minutes>` | minutes the crew needs in front of a function [default: 60] |
+| `--teardown <minutes>` | minutes the crew needs behind it [default: 30] |
 
 ### `space list`
 
@@ -140,10 +140,10 @@ every room, with what it seats
 
 publish what a room seats in one setup style
 
-| option              | what it is                            |
-| ------------------- | ------------------------------------- |
-| `--code <code>`     | the room (required)                   |
-| `--style <style>`   | the setup style (required)            |
+| option | what it is |
+| --- | --- |
+| `--code <code>` | the room (required) |
+| `--style <style>` | the setup style (required) |
 | `--covers <covers>` | how many it seats that way (required) |
 
 ## `room`
@@ -154,28 +154,28 @@ combined rooms and what they block
 
 define a room made of other rooms
 
-| option            | what it is                                       |
-| ----------------- | ------------------------------------------------ |
-| `--code <code>`   | code for the combined room (required)            |
-| `--name <name>`   | the name it is sold under (required)             |
-| `--parts <codes>` | comma separated room codes (required)            |
+| option | what it is |
+| --- | --- |
+| `--code <code>` | code for the combined room (required) |
+| `--name <name>` | the name it is sold under (required) |
+| `--parts <codes>` | comma separated room codes (required) |
 | `--fire <covers>` | fire capacity, if it is not the sum of the parts |
 
 ### `room footprint`
 
 what a room takes out of the diary, and what it clashes with
 
-| option          | what it is          |
-| --------------- | ------------------- |
+| option | what it is |
+| --- | --- |
 | `--code <code>` | the room (required) |
 
 ### `room service`
 
 take a room out of service or put it back
 
-| option            | what it is           |
-| ----------------- | -------------------- |
-| `--code <code>`   | the room (required)  |
+| option | what it is |
+| --- | --- |
+| `--code <code>` | the room (required) |
 | `--state <state>` | in or out (required) |
 
 ## `calendar`
@@ -186,19 +186,19 @@ the office and kitchen calendars
 
 mark a date closed or open on one of the calendars
 
-| option               | what it is                       |
-| -------------------- | -------------------------------- |
-| `--calendar <which>` | office or kitchen (required)     |
-| `--date <date>`      | the date, YYYY-MM-DD (required)  |
-| `--state <state>`    | closed or open [default: closed] |
-| `--note <note>`      | why [default: ]                  |
+| option | what it is |
+| --- | --- |
+| `--calendar <which>` | office or kitchen (required) |
+| `--date <date>` | the date, YYYY-MM-DD (required) |
+| `--state <state>` | closed or open [default: closed] |
+| `--note <note>` | why [default: ] |
 
 ### `calendar list`
 
 the dates one calendar carries
 
-| option               | what it is                   |
-| -------------------- | ---------------------------- |
+| option | what it is |
+| --- | --- |
 | `--calendar <which>` | office or kitchen (required) |
 
 ## `account`
@@ -209,14 +209,14 @@ the accounts we book from
 
 put an account on file
 
-| option              | what it is                                                        |
-| ------------------- | ----------------------------------------------------------------- |
-| `--code <code>`     | short code for the account (required)                             |
-| `--name <name>`     | the name it trades under (required)                               |
-| `--kind <kind>`     | corporate, association, government, social or internal (required) |
-| `--email <email>`   | where the invoice goes [default: ]                                |
-| `--credit <status>` | approved, prepay or hold [default: APPROVED]                      |
-| `--exempt <id>`     | tax exemption certificate number [default: ]                      |
+| option | what it is |
+| --- | --- |
+| `--code <code>` | short code for the account (required) |
+| `--name <name>` | the name it trades under (required) |
+| `--kind <kind>` | corporate, association, government, social or internal (required) |
+| `--email <email>` | where the invoice goes [default: ] |
+| `--credit <status>` | approved, prepay or hold [default: APPROVED] |
+| `--exempt <id>` | tax exemption certificate number [default: ] |
 
 ### `account list`
 
@@ -226,17 +226,17 @@ every account on file
 
 move an account credit status
 
-| option              | what it is                          |
-| ------------------- | ----------------------------------- |
-| `--code <code>`     | the account (required)              |
+| option | what it is |
+| --- | --- |
+| `--code <code>` | the account (required) |
 | `--status <status>` | approved, prepay or hold (required) |
 
 ### `account show`
 
 one account and the bookings on it
 
-| option          | what it is             |
-| --------------- | ---------------------- |
+| option | what it is |
+| --- | --- |
 | `--code <code>` | the account (required) |
 
 ## `booking`
@@ -247,31 +247,31 @@ the deals in the diary
 
 open a booking as an inquiry
 
-| option               | what it is                                  |
-| -------------------- | ------------------------------------------- |
-| `--post-as <name>`   | how it reads on the reader board (required) |
-| `--arrival <date>`   | first day of the business (required)        |
-| `--departure <date>` | last day of the business (required)         |
-| `--account <code>`   | the account it belongs to                   |
-| `--manager <name>`   | the sales manager on it [default: ]         |
+| option | what it is |
+| --- | --- |
+| `--post-as <name>` | how it reads on the reader board (required) |
+| `--arrival <date>` | first day of the business (required) |
+| `--departure <date>` | last day of the business (required) |
+| `--account <code>` | the account it belongs to |
+| `--manager <name>` | the sales manager on it [default: ] |
 
 ### `booking list`
 
 bookings, filtered
 
-| option              | what it is                                        |
-| ------------------- | ------------------------------------------------- |
+| option | what it is |
+| --- | --- |
 | `--status <status>` | inquiry, tentative, definite, cancelled or closed |
-| `--account <code>`  | only this account                                 |
-| `--from <date>`     | business overlapping on or after this date        |
-| `--to <date>`       | business overlapping on or before this date       |
+| `--account <code>` | only this account |
+| `--from <date>` | business overlapping on or after this date |
+| `--to <date>` | business overlapping on or before this date |
 
 ### `booking show`
 
 one booking with its functions
 
-| option      | what it is             |
-| ----------- | ---------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the booking (required) |
 
 ## `deal`
@@ -282,32 +282,32 @@ changing and advancing a booking
 
 change a booking that is still live
 
-| option               | what it is                           |
-| -------------------- | ------------------------------------ |
-| `--id <id>`          | the booking (required)               |
-| `--post-as <name>`   | a new reader board name              |
-| `--account <code>`   | attach an account, or none to detach |
-| `--arrival <date>`   | a new arrival date                   |
-| `--departure <date>` | a new departure date                 |
-| `--manager <name>`   | a new sales manager                  |
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the booking (required) |
+| `--post-as <name>` | a new reader board name |
+| `--account <code>` | attach an account, or none to detach |
+| `--arrival <date>` | a new arrival date |
+| `--departure <date>` | a new departure date |
+| `--manager <name>` | a new sales manager |
 
 ### `deal advance`
 
 move a booking to its next stage
 
-| option              | what it is                                            |
-| ------------------- | ----------------------------------------------------- |
-| `--id <id>`         | the booking (required)                                |
-| `--to <status>`     | tentative, definite, cancelled or closed (required)   |
-| `--reason <reason>` | why, required to cancel                               |
-| `--today <date>`    | the date the office believes it is, required to close |
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the booking (required) |
+| `--to <status>` | tentative, definite, cancelled or closed (required) |
+| `--reason <reason>` | why, required to cancel |
+| `--today <date>` | the date the office believes it is, required to close |
 
 ### `deal history`
 
 everything that happened to a booking
 
-| option      | what it is             |
-| ----------- | ---------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the booking (required) |
 
 ## `function`
@@ -318,24 +318,24 @@ the functions inside a booking
 
 put a function in a room
 
-| option              | what it is                                              |
-| ------------------- | ------------------------------------------------------- |
-| `--booking <id>`    | the booking it belongs to (required)                    |
-| `--room <code>`     | the room (required)                                     |
-| `--name <name>`     | what it is called on the order (required)               |
-| `--date <date>`     | the service date (required)                             |
-| `--start <time>`    | when guests arrive, HH:MM (required)                    |
-| `--end <time>`      | when it finishes, past 24:00 if it runs late (required) |
-| `--setup <style>`   | the setup style (required)                              |
-| `--service <style>` | the service style (required)                            |
-| `--covers <covers>` | covers the salesperson expects [default: 0]             |
+| option | what it is |
+| --- | --- |
+| `--booking <id>` | the booking it belongs to (required) |
+| `--room <code>` | the room (required) |
+| `--name <name>` | what it is called on the order (required) |
+| `--date <date>` | the service date (required) |
+| `--start <time>` | when guests arrive, HH:MM (required) |
+| `--end <time>` | when it finishes, past 24:00 if it runs late (required) |
+| `--setup <style>` | the setup style (required) |
+| `--service <style>` | the service style (required) |
+| `--covers <covers>` | covers the salesperson expects [default: 0] |
 
 ### `function list`
 
 the functions on a booking
 
-| option           | what it is             |
-| ---------------- | ---------------------- |
+| option | what it is |
+| --- | --- |
 | `--booking <id>` | the booking (required) |
 
 ## `slot`
@@ -346,32 +346,32 @@ moving a function once it exists
 
 change a function that is still live
 
-| option              | what it is                 |
-| ------------------- | -------------------------- |
-| `--id <id>`         | the function (required)    |
-| `--room <code>`     | a new room                 |
-| `--date <date>`     | a new service date         |
-| `--start <time>`    | a new start                |
-| `--end <time>`      | a new end                  |
-| `--setup <style>`   | a new setup style          |
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the function (required) |
+| `--room <code>` | a new room |
+| `--date <date>` | a new service date |
+| `--start <time>` | a new start |
+| `--end <time>` | a new end |
+| `--setup <style>` | a new setup style |
 | `--covers <covers>` | a new expected cover count |
-| `--name <name>`     | a new name                 |
+| `--name <name>` | a new name |
 
 ### `slot status`
 
 hold, confirm, release or cancel a function
 
-| option          | what it is                                       |
-| --------------- | ------------------------------------------------ |
-| `--id <id>`     | the function (required)                          |
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the function (required) |
 | `--to <status>` | held, definite, released or cancelled (required) |
 
 ### `slot show`
 
 one function
 
-| option      | what it is              |
-| ----------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the function (required) |
 
 ## `diary`
@@ -382,20 +382,20 @@ what is in the rooms on a date
 
 the function board for one date
 
-| option          | what it is          |
-| --------------- | ------------------- |
+| option | what it is |
+| --- | --- |
 | `--date <date>` | the date (required) |
 
 ### `diary check`
 
 what a proposed function would collide with
 
-| option           | what it is                     |
-| ---------------- | ------------------------------ |
-| `--room <code>`  | the room (required)            |
-| `--date <date>`  | the service date (required)    |
+| option | what it is |
+| --- | --- |
+| `--room <code>` | the room (required) |
+| `--date <date>` | the service date (required) |
 | `--start <time>` | when it would start (required) |
-| `--end <time>`   | when it would end (required)   |
+| `--end <time>` | when it would end (required) |
 
 ## `covers`
 
@@ -405,31 +405,31 @@ the guarantee and what was served
 
 open a cover count and work out when the guarantee closes
 
-| option              | what it is                                  |
-| ------------------- | ------------------------------------------- |
-| `--function <id>`   | the function (required)                     |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
 | `--contract <date>` | the date the contract was signed (required) |
-| `--package <code>`  | the menu package sold                       |
-| `--book <code>`     | the price book it was quoted from           |
+| `--package <code>` | the menu package sold |
+| `--book <code>` | the price book it was quoted from |
 
 ### `covers guarantee`
 
 name the guaranteed cover count
 
-| option              | what it is                                        |
-| ------------------- | ------------------------------------------------- |
-| `--function <id>`   | the function (required)                           |
-| `--covers <covers>` | the number guaranteed (required)                  |
-| `--note <note>`     | why, for the record [default: ]                   |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--covers <covers>` | the number guaranteed (required) |
+| `--note <note>` | why, for the record [default: ] |
 | `--override-cutoff` | lower the count after the deadline, on the record |
 
 ### `covers served`
 
 record the count taken at the pass
 
-| option              | what it is                   |
-| ------------------- | ---------------------------- |
-| `--function <id>`   | the function (required)      |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
 | `--covers <covers>` | how many went out (required) |
 
 ## `count`
@@ -440,16 +440,16 @@ reading a cover count
 
 the guarantee, the plate count and what the room is set for
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `count movements`
 
 every time the guarantee moved
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ## `special`
@@ -460,39 +460,39 @@ special meals inside the guarantee
 
 record a guest who needs something different
 
-| option                | what it is                                  |
-| --------------------- | ------------------------------------------- |
-| `--function <id>`     | the function (required)                     |
-| `--guest <name>`      | the guest [default: ]                       |
-| `--covers <covers>`   | how many covers it is for [default: 1]      |
-| `--diet <diet>`       | the diet they follow                        |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--guest <name>` | the guest [default: ] |
+| `--covers <covers>` | how many covers it is for [default: 1] |
+| `--diet <diet>` | the diet they follow |
 | `--avoid <allergens>` | comma separated allergens to keep away from |
-| `--substitute <code>` | the dish they will be served                |
-| `--note <note>`       | anything else [default: ]                   |
+| `--substitute <code>` | the dish they will be served |
+| `--note <note>` | anything else [default: ] |
 
 ### `special list`
 
 the special meals on a function
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `special substitute`
 
 decide what a special meal will actually be
 
-| option          | what it is                  |
-| --------------- | --------------------------- |
-| `--id <id>`     | the special meal (required) |
-| `--item <code>` | the dish (required)         |
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the special meal (required) |
+| `--item <code>` | the dish (required) |
 
 ### `special remove`
 
 take a special meal off
 
-| option      | what it is                  |
-| ----------- | --------------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the special meal (required) |
 
 ## `tax`
@@ -503,23 +503,23 @@ tax profiles and the rates in them
 
 put a tax profile on file
 
-| option                 | what it is                               |
-| ---------------------- | ---------------------------------------- |
-| `--code <code>`        | short code for the profile (required)    |
-| `--name <name>`        | the jurisdiction it covers (required)    |
-| `--service <percent>`  | service charge percentage [default: 0]   |
-| `--gratuity <percent>` | gratuity percentage [default: 0]         |
-| `--service-untaxed`    | the service charge is not itself taxable |
+| option | what it is |
+| --- | --- |
+| `--code <code>` | short code for the profile (required) |
+| `--name <name>` | the jurisdiction it covers (required) |
+| `--service <percent>` | service charge percentage [default: 0] |
+| `--gratuity <percent>` | gratuity percentage [default: 0] |
+| `--service-untaxed` | the service charge is not itself taxable |
 
 ### `tax rate`
 
 set the sales tax rate for one charge category
 
-| option                  | what it is                                                   |
-| ----------------------- | ------------------------------------------------------------ |
-| `--profile <code>`      | the profile (required)                                       |
+| option | what it is |
+| --- | --- |
+| `--profile <code>` | the profile (required) |
 | `--category <category>` | food, beverage, rental, av, labor, service or fee (required) |
-| `--percent <percent>`   | the rate (required)                                          |
+| `--percent <percent>` | the rate (required) |
 
 ### `tax list`
 
@@ -533,49 +533,49 @@ what goes on the bill
 
 put a line on a function
 
-| option                  | what it is                            |
-| ----------------------- | ------------------------------------- |
-| `--function <id>`       | the function (required)               |
-| `--category <category>` | the charge category (required)        |
-| `--description <text>`  | what it is (required)                 |
-| `--quantity <count>`    | how many (required)                   |
-| `--unit <amount>`       | the unit price (required)             |
-| `--item <code>`         | the catalog item behind it            |
-| `--no-tax`              | the line is not taxable               |
-| `--service`             | the service charge falls on this line |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--category <category>` | the charge category (required) |
+| `--description <text>` | what it is (required) |
+| `--quantity <count>` | how many (required) |
+| `--unit <amount>` | the unit price (required) |
+| `--item <code>` | the catalog item behind it |
+| `--no-tax` | the line is not taxable |
+| `--service` | the service charge falls on this line |
 
 ### `charge package`
 
 draw the package line off the guarantee and the price book
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `charge upcharge`
 
 bill an upcharge item to the covers that took it
 
-| option             | what it is                   |
-| ------------------ | ---------------------------- |
-| `--function <id>`  | the function (required)      |
-| `--item <code>`    | the upcharge item (required) |
-| `--covers <count>` | how many took it (required)  |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--item <code>` | the upcharge item (required) |
+| `--covers <count>` | how many took it (required) |
 
 ### `charge list`
 
 every line on a function
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `charge remove`
 
 take a line off
 
-| option      | what it is          |
-| ----------- | ------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the line (required) |
 
 ## `invoice`
@@ -586,26 +586,26 @@ invoices and what has been paid
 
 raise an invoice against a booking
 
-| option             | what it is                                 |
-| ------------------ | ------------------------------------------ |
-| `--booking <id>`   | the booking (required)                     |
-| `--profile <code>` | the tax profile to bill under (required)   |
-| `--note <note>`    | anything the client should see [default: ] |
+| option | what it is |
+| --- | --- |
+| `--booking <id>` | the booking (required) |
+| `--profile <code>` | the tax profile to bill under (required) |
+| `--note <note>` | anything the client should see [default: ] |
 
 ### `invoice show`
 
 the totals on an invoice
 
-| option      | what it is             |
-| ----------- | ---------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the invoice (required) |
 
 ### `invoice breakdown`
 
 the totals per charge category
 
-| option      | what it is             |
-| ----------- | ---------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the invoice (required) |
 
 ## `settle`
@@ -616,38 +616,38 @@ paying an invoice off
 
 record a deposit, a payment or a refund
 
-| option               | what it is                                       |
-| -------------------- | ------------------------------------------------ |
-| `--id <id>`          | the invoice (required)                           |
-| `--kind <kind>`      | deposit, payment, refund or write-off (required) |
-| `--amount <amount>`  | how much (required)                              |
-| `--reference <text>` | the wire or cheque reference [default: ]         |
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the invoice (required) |
+| `--kind <kind>` | deposit, payment, refund or write-off (required) |
+| `--amount <amount>` | how much (required) |
+| `--reference <text>` | the wire or cheque reference [default: ] |
 
 ### `settle payments`
 
 everything that has landed against an invoice
 
-| option      | what it is             |
-| ----------- | ---------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the invoice (required) |
 
 ### `settle advance`
 
 issue, settle or void an invoice
 
-| option          | what it is                      |
-| --------------- | ------------------------------- |
-| `--id <id>`     | the invoice (required)          |
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the invoice (required) |
 | `--to <status>` | issued, paid or void (required) |
 
 ### `settle list`
 
 invoices, filtered
 
-| option              | what it is        |
-| ------------------- | ----------------- |
-| `--booking <id>`    | only this booking |
-| `--status <status>` | only this status  |
+| option | what it is |
+| --- | --- |
+| `--booking <id>` | only this booking |
+| `--status <status>` | only this status |
 
 ## `order`
 
@@ -657,58 +657,58 @@ the banquet event order
 
 what the sheet would say if it were drawn now
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `order draw`
 
 freeze a new revision
 
-| option            | what it is                         |
-| ----------------- | ---------------------------------- |
-| `--function <id>` | the function (required)            |
-| `--note <note>`   | why this one was drawn [default: ] |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--note <note>` | why this one was drawn [default: ] |
 
 ### `order show`
 
 print a revision as it was frozen
 
-| option      | what it is              |
-| ----------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the revision (required) |
 
 ### `order list`
 
 every revision on a function
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `order distribute`
 
 send the live revision out
 
-| option      | what it is              |
-| ----------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the revision (required) |
 
 ### `order sign`
 
 record the client signature
 
-| option        | what it is               |
-| ------------- | ------------------------ |
-| `--id <id>`   | the revision (required)  |
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the revision (required) |
 | `--by <name>` | who signed it (required) |
 
 ### `order drift`
 
 what has moved since the live sheet was drawn
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ## `change`
@@ -719,42 +719,42 @@ change orders against a signed sheet
 
 raise a change order off whatever has drifted
 
-| option              | what it is                                          |
-| ------------------- | --------------------------------------------------- |
-| `--function <id>`   | the function (required)                             |
-| `--reason <reason>` | why the change was asked for (required)             |
-| `--fee <amount>`    | a late fee, only allowed after the guarantee closed |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--reason <reason>` | why the change was asked for (required) |
+| `--fee <amount>` | a late fee, only allowed after the guarantee closed |
 
 ### `change show`
 
 what one change order carries
 
-| option      | what it is                  |
-| ----------- | --------------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the change order (required) |
 
 ### `change list`
 
 every change order on a function
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `change apply`
 
 apply a change order and draw a fresh revision
 
-| option      | what it is                  |
-| ----------- | --------------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the change order (required) |
 
 ### `change decline`
 
 turn a change order down
 
-| option      | what it is                  |
-| ----------- | --------------------------- |
+| option | what it is |
+| --- | --- |
 | `--id <id>` | the change order (required) |
 
 ## `runsheet`
@@ -765,22 +765,22 @@ the run of show template
 
 put a step on the template for a service style
 
-| option                  | what it is                                                  |
-| ----------------------- | ----------------------------------------------------------- |
-| `--style <style>`       | the service style (required)                                |
-| `--sequence <n>`        | where it sits in the template (required)                    |
-| `--label <label>`       | what happens (required)                                     |
-| `--anchor <anchor>`     | setup, doors, service, close or teardown (required)         |
-| `--offset <minutes>`    | minutes from the anchor, negative for before [default: 0]   |
+| option | what it is |
+| --- | --- |
+| `--style <style>` | the service style (required) |
+| `--sequence <n>` | where it sits in the template (required) |
+| `--label <label>` | what happens (required) |
+| `--anchor <anchor>` | setup, doors, service, close or teardown (required) |
+| `--offset <minutes>` | minutes from the anchor, negative for before [default: 0] |
 | `--per-cover <seconds>` | seconds a cover adds, pulling the step earlier [default: 0] |
-| `--owner <role>`        | whose job it is [default: ]                                 |
+| `--owner <role>` | whose job it is [default: ] |
 
 ### `runsheet show`
 
 the template for one service style
 
-| option            | what it is                   |
-| ----------------- | ---------------------------- |
+| option | what it is |
+| --- | --- |
 | `--style <style>` | the service style (required) |
 
 ## `timeline`
@@ -791,54 +791,54 @@ the run of show on a function
 
 the five fixed points on a function
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `timeline preview`
 
 what the run of show would be without saving it
 
-| option             | what it is                             |
-| ------------------ | -------------------------------------- |
-| `--function <id>`  | the function (required)                |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
 | `--covers <count>` | work it out against this count instead |
 
 ### `timeline save`
 
 freeze the run of show, keeping anything pinned
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `timeline show`
 
 the saved run of show
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `timeline pin`
 
 fix one step at a time somebody has decided on
 
-| option              | what it is                                   |
-| ------------------- | -------------------------------------------- |
-| `--function <id>`   | the function (required)                      |
-| `--sequence <n>`    | which step (required)                        |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--sequence <n>` | which step (required) |
 | `--minute <minute>` | the minute of the day it lands on (required) |
-| `--note <note>`     | why [default: ]                              |
+| `--note <note>` | why [default: ] |
 
 ### `timeline unpin`
 
 let a step follow the count again
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
-| `--sequence <n>`  | which step (required)   |
+| `--sequence <n>` | which step (required) |
 
 ## `sheet`
 
@@ -848,48 +848,48 @@ the sheets people print
 
 the production sheet for one function, by station
 
-| option            | what it is              |
-| ----------------- | ----------------------- |
+| option | what it is |
+| --- | --- |
 | `--function <id>` | the function (required) |
 
 ### `sheet pick`
 
 the pick list for one date, by store
 
-| option          | what it is                  |
-| --------------- | --------------------------- |
+| option | what it is |
+| --- | --- |
 | `--date <date>` | the service date (required) |
 
 ### `sheet trips`
 
 how many packs come out of each store on a date
 
-| option          | what it is                  |
-| --------------- | --------------------------- |
+| option | what it is |
+| --- | --- |
 | `--date <date>` | the service date (required) |
 
 ### `sheet board`
 
 the function board for one date
 
-| option          | what it is          |
-| --------------- | ------------------- |
+| option | what it is |
+| --- | --- |
 | `--date <date>` | the date (required) |
 
 ### `sheet reader`
 
 what goes on the lobby screen
 
-| option          | what it is          |
-| --------------- | ------------------- |
+| option | what it is |
+| --- | --- |
 | `--date <date>` | the date (required) |
 
 ### `sheet staffing`
 
 who is called in on one date
 
-| option          | what it is          |
-| --------------- | ------------------- |
+| option | what it is |
+| --- | --- |
 | `--date <date>` | the date (required) |
 
 ## `resume`
@@ -900,16 +900,16 @@ one booking on one page
 
 every function on a booking with the covers and the money
 
-| option           | what it is             |
-| ---------------- | ---------------------- |
+| option | what it is |
+| --- | --- |
 | `--booking <id>` | the booking (required) |
 
 ### `resume open`
 
 only what is still open on a booking
 
-| option           | what it is             |
-| ---------------- | ---------------------- |
+| option | what it is |
+| --- | --- |
 | `--booking <id>` | the booking (required) |
 
 ## `serve`
@@ -920,9 +920,9 @@ the read only http service
 
 bind a port and answer read requests until stopped
 
-| option          | what it is                                 |
-| --------------- | ------------------------------------------ |
-| `--port <port>` | the port to bind [default: 8377]           |
+| option | what it is |
+| --- | --- |
+| `--port <port>` | the port to bind [default: 8377] |
 | `--host <host>` | the interface to bind [default: 127.0.0.1] |
 
 ### `serve routes`
@@ -933,8 +933,8 @@ every route the service answers
 
 answer one request against the store without binding a port
 
-| option          | what it is                   |
-| --------------- | ---------------------------- |
+| option | what it is |
+| --- | --- |
 | `--path <path>` | the path to fetch (required) |
 
 ## `kit`
@@ -945,13 +945,13 @@ the store cupboard and what a setup pulls
 
 put a piece of equipment on file
 
-| option              | what it is                                                            |
-| ------------------- | --------------------------------------------------------------------- |
-| `--code <code>`     | short code (required)                                                 |
-| `--name <name>`     | what it is called (required)                                          |
-| `--kind <kind>`     | table, seating, linen, china, glass, buffet, av or staging (required) |
-| `--owned <count>`   | how many the property owns [default: 0]                               |
-| `--rental <amount>` | what one costs to hire in [default: 0.00]                             |
+| option | what it is |
+| --- | --- |
+| `--code <code>` | short code (required) |
+| `--name <name>` | what it is called (required) |
+| `--kind <kind>` | table, seating, linen, china, glass, buffet, av or staging (required) |
+| `--owned <count>` | how many the property owns [default: 0] |
+| `--rental <amount>` | what one costs to hire in [default: 0.00] |
 
 ### `kit list`
 
@@ -961,20 +961,20 @@ everything in the cupboard
 
 say what a setup style pulls
 
-| option                | what it is                              |
-| --------------------- | --------------------------------------- |
-| `--style <style>`     | the setup style (required)              |
-| `--item <code>`       | the equipment (required)                |
-| `--per-cover <count>` | how many a cover needs [default: 0]     |
-| `--per-table <count>` | how many a table needs [default: 0]     |
-| `--fixed <count>`     | how many whatever the size [default: 0] |
+| option | what it is |
+| --- | --- |
+| `--style <style>` | the setup style (required) |
+| `--item <code>` | the equipment (required) |
+| `--per-cover <count>` | how many a cover needs [default: 0] |
+| `--per-table <count>` | how many a table needs [default: 0] |
+| `--fixed <count>` | how many whatever the size [default: 0] |
 
 ### `kit rules`
 
 what one setup style pulls
 
-| option            | what it is                 |
-| ----------------- | -------------------------- |
+| option | what it is |
+| --- | --- |
 | `--style <style>` | the setup style (required) |
 
 ## `pull`
@@ -985,20 +985,20 @@ the pull sheet for a function
 
 what the setup pulls, off its guaranteed count
 
-| option             | what it is                             |
-| ------------------ | -------------------------------------- |
-| `--function <id>`  | the function (required)                |
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
 | `--covers <count>` | work it out against this count instead |
-| `--save`           | write it against the function          |
+| `--save` | write it against the function |
 
 ### `pull tables`
 
 how many tables a setup needs for a cover count
 
-| option             | what it is                 |
-| ------------------ | -------------------------- |
-| `--style <style>`  | the setup style (required) |
-| `--covers <count>` | the covers (required)      |
+| option | what it is |
+| --- | --- |
+| `--style <style>` | the setup style (required) |
+| `--covers <count>` | the covers (required) |
 
 ## `audit`
 
@@ -1008,16 +1008,79 @@ look for what has quietly stopped adding up
 
 every finding across the property
 
-| option           | what it is                                    |
-| ---------------- | --------------------------------------------- |
+| option | what it is |
+| --- | --- |
 | `--today <date>` | the date the office believes it is (required) |
-| `--from <date>`  | only look at functions on or after this date  |
-| `--errors-only`  | leave the warnings out                        |
+| `--from <date>` | only look at functions on or after this date |
+| `--errors-only` | leave the warnings out |
 
 ### `audit counts`
 
 how many findings there are, by level
 
-| option           | what it is                                    |
-| ---------------- | --------------------------------------------- |
+| option | what it is |
+| --- | --- |
 | `--today <date>` | the date the office believes it is (required) |
+
+## `bartier`
+
+the bar tiers a property sells
+
+### `bartier add`
+
+put a bar tier on file
+
+| option | what it is |
+| --- | --- |
+| `--code <code>` | short code (required) |
+| `--name <name>` | what it is called (required) |
+| `--first <amount>` | per cover for the first hour (required) |
+| `--extra <amount>` | per cover for each hour after it (required) |
+
+### `bartier list`
+
+every tier on file
+
+## `bar`
+
+the bar on a function
+
+### `bar set`
+
+put a bar on a function
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--kind <kind>` | package, consumption or cash (required) |
+| `--tier <code>` | the tier, for a package bar |
+| `--hours <hours>` | how long it runs [default: 0] |
+| `--note <note>` | anything else [default: ] |
+
+### `bar pour`
+
+record what came out of a bottle
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--item <code>` | the beverage (required) |
+| `--opening <tenths>` | tenths of a bottle at the start (required) |
+| `--closing <tenths>` | tenths of a bottle at the end (required) |
+| `--unit <amount>` | what a whole bottle costs (required) |
+
+### `bar show`
+
+the bar on a function and what it comes to
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+### `bar pours`
+
+every bottle counted on a function
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
