@@ -1084,3 +1084,15 @@ every bottle counted on a function
 | option | what it is |
 | --- | --- |
 | `--function <id>` | the function (required) |
+
+## `barbill`
+
+putting the bar on the invoice
+
+### `barbill draw`
+
+draw the bar charge onto the function
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |

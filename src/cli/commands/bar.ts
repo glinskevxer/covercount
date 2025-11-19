@@ -17,6 +17,7 @@ import {
   setBar,
 } from '../../bar/store.js';
 import { render, renderRecord } from '../output.js';
+import { drawBarCharges } from '../../billing/charges.js';
 import { entityArg, moneyArg, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
@@ -203,5 +204,31 @@ export function registerBarCommands(program: Command, makeContext: () => CliCont
         },
         { readOnly: true },
       );
+    });
+}
+
+export function registerBarBillingCommands(program: Command, makeContext: () => CliContext): void {
+  const bill = program.command('barbill').description('putting the bar on the invoice');
+
+  bill
+    .command('draw')
+    .description('draw the bar charge onto the function')
+    .requiredOption('--function <id>', 'the function')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const drawn = drawBarCharges(db, entityArg('functionSlot', options.function ?? ''));
+        context.write(
+          render(
+            drawn.map((row) => ({
+              id: row.id,
+              category: row.category,
+              description: row.description,
+              total: formatMoney(row.unit),
+            })),
+            { format: context.format, empty: 'that bar charges the client nothing' },
+          ),
+        );
+      });
     });
 }

@@ -25,7 +25,14 @@ export const CHARGE_CATEGORIES = [
 
 export type ChargeCategory = (typeof CHARGE_CATEGORIES)[number];
 
-export const CHARGE_SOURCES = ['MANUAL', 'PACKAGE', 'UPCHARGE', 'LABOUR', 'CHANGE-ORDER'] as const;
+export const CHARGE_SOURCES = [
+  'MANUAL',
+  'PACKAGE',
+  'UPCHARGE',
+  'BAR',
+  'LABOUR',
+  'CHANGE-ORDER',
+] as const;
 
 export type ChargeSource = (typeof CHARGE_SOURCES)[number];
 

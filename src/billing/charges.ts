@@ -20,6 +20,7 @@ import { isFinished } from '../booking/types.js';
 import { requireItem } from '../catalog/items.js';
 import { requirePriceOn } from '../catalog/pricing.js';
 import { billedCovers, requireCovers } from '../covers/guarantee.js';
+import { barCharge } from '../bar/store.js';
 import { requireProperty } from '../property/store.js';
 import { inTransaction, type Database } from '../store/database.js';
 import {
@@ -270,5 +271,37 @@ export function addUpcharge(
     unitMinor: price.amount,
     itemCode: code,
     source: 'UPCHARGE',
+  });
+}
+
+/**
+ * Draw the bar onto the bill.
+ *
+ * The bar is worked out in its own module because the two ways of selling it
+ * have nothing in common, but it has to land on the invoice like everything
+ * else. A cash bar draws no line at all rather than a line for nothing, which
+ * is what a coordinator expects to see.
+ */
+export function drawBarCharges(db: Database, functionId: EntityId<'functionSlot'>): ChargeLine[] {
+  const charge = barCharge(db, functionId);
+
+  return inTransaction(db, (handle) => {
+    removeChargesFrom(handle, functionId, 'BAR');
+    if (charge.amount.amount === 0) {
+      return [];
+    }
+    addCharge(handle, functionId, {
+      category: 'BEVERAGE',
+      description:
+        charge.kind === 'PACKAGE'
+          ? `Package bar, ${charge.detail}`
+          : `Consumption bar, ${charge.detail}`,
+      quantity: 1,
+      unitMinor: charge.amount.amount,
+      source: 'BAR',
+      serviceable: true,
+      taxable: true,
+    });
+    return listCharges(handle, functionId).filter((line) => line.source === 'BAR');
   });
 }
