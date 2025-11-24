@@ -218,3 +218,27 @@ export function compareZoned(left: ZonedDateTime, right: ZonedDateTime): number 
   if (leftInstant > rightInstant) return 1;
   return 0;
 }
+
+/**
+ * A minute of a function block, printed for a person.
+ *
+ * A function block runs from a minute of the service date and is allowed past
+ * 1440, so the same number can mean nine in the evening or one the following
+ * morning. Three sheets were each wrapping it into the day and labelling the
+ * roll differently, which meant the same shift read as two different times
+ * depending on which sheet somebody was holding.
+ *
+ * `nextDayLabel` is the only thing that varies between them, so it is the only
+ * thing this takes.
+ */
+export function formatBlockMinute(minute: number, nextDayLabel = ' (next day)'): string {
+  const wrapped = timeOfDay(((minute % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY);
+  const label = formatTimeOfDayShort(wrapped);
+  if (minute >= MINUTES_PER_DAY) {
+    return `${label}${nextDayLabel}`;
+  }
+  if (minute < 0) {
+    return `${label} (prev)`;
+  }
+  return label;
+}

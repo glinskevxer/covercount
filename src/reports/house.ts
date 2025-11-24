@@ -9,7 +9,7 @@
  */
 
 import { formatCalendarDate, type CalendarDate } from '../core/calendar.js';
-import { formatTimeOfDayShort, type TimeOfDay } from '../core/clock.js';
+import { formatBlockMinute } from '../core/clock.js';
 import { formatMoney, sumMoney, zeroMoney, type Money } from '../core/money.js';
 import type { CatalogCode, EntityId } from '../core/ids.js';
 import { functionsOnDate } from '../booking/diary.js';
@@ -19,12 +19,6 @@ import { requireProperty, requireSpace } from '../property/store.js';
 import { findCovers } from '../covers/guarantee.js';
 import { listShifts, shiftCost } from '../labour/shifts.js';
 import type { Database } from '../store/database.js';
-
-function clock(minute: number): string {
-  const wrapped = (((minute % 1440) + 1440) % 1440) as TimeOfDay;
-  const label = formatTimeOfDayShort(wrapped);
-  return minute >= 1440 ? `${label}+1` : label;
-}
 
 export interface BoardRow {
   readonly functionId: EntityId<'functionSlot'>;
@@ -62,8 +56,8 @@ export function functionBoard(
       roomName: space.name,
       name: slot.name,
       postAs: booking.postAs,
-      start: clock(slot.startMinute),
-      end: clock(slot.endMinute),
+      start: formatBlockMinute(slot.startMinute, '+1'),
+      end: formatBlockMinute(slot.endMinute, '+1'),
       setupStyle: slot.setupStyle,
       serviceStyle: slot.serviceStyle,
       status: slot.status,
@@ -175,8 +169,8 @@ export function staffingSheet(
         room: space.name,
         role: shift.role,
         heads: shift.heads,
-        from: clock(shift.startMinute),
-        to: clock(shift.endMinute),
+        from: formatBlockMinute(shift.startMinute, '+1'),
+        to: formatBlockMinute(shift.endMinute, '+1'),
         cost: formatMoney(cost),
       });
     }

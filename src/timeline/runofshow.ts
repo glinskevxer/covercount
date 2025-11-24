@@ -12,7 +12,7 @@
  * happens when a late supper's mise en place starts the previous evening.
  */
 
-import { formatTimeOfDayShort, type TimeOfDay } from '../core/clock.js';
+import { formatBlockMinute } from '../core/clock.js';
 import { invalidInput, notFound } from '../core/errors.js';
 import type { CatalogCode, EntityId } from '../core/ids.js';
 import { divideRound } from '../core/rounding.js';
@@ -332,9 +332,7 @@ export function renderRunOfShow(steps: readonly TimelineStep[]): string {
   const width = steps.reduce((widest, step) => Math.max(widest, step.label.length), 0);
   return steps
     .map((step) => {
-      const wrapped = (((step.minute % 1440) + 1440) % 1440) as TimeOfDay;
-      const day = step.minute < 0 ? ' (prev)' : step.minute >= 1440 ? ' (next)' : '';
-      const clock = `${formatTimeOfDayShort(wrapped)}${day}`;
+      const clock = formatBlockMinute(step.minute, ' (next)');
       const owner = step.owner.length > 0 ? `  ${step.owner}` : '';
       const pin = step.pinned ? ' *' : '';
       return `${clock.padStart(12)}  ${step.label.padEnd(width)}${owner}${pin}`;

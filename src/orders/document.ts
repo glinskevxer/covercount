@@ -9,7 +9,7 @@
  */
 
 import { formatCalendarDate, type CalendarDate } from '../core/calendar.js';
-import { formatTimeOfDayShort, formatZoned, type TimeOfDay } from '../core/clock.js';
+import { formatBlockMinute, formatZoned } from '../core/clock.js';
 import { formatMoney, type Money } from '../core/money.js';
 import type { CatalogCode, EntityId } from '../core/ids.js';
 import { requireFunction } from '../booking/functions.js';
@@ -88,12 +88,6 @@ export interface BanquetEventOrder {
   readonly warnings: string[];
 }
 
-function minuteLabel(minute: number): string {
-  const wrapped = (minute % 1440) as TimeOfDay;
-  const label = formatTimeOfDayShort(wrapped);
-  return minute >= 1440 ? `${label} (next day)` : label;
-}
-
 export function assembleOrder(
   db: Database,
   functionId: EntityId<'functionSlot'>,
@@ -130,8 +124,8 @@ export function assembleOrder(
   const roster: OrderShiftLine[] = listShifts(db, functionId).map((shift) => ({
     role: shift.role,
     heads: shift.heads,
-    from: minuteLabel(shift.startMinute),
-    to: minuteLabel(shift.endMinute),
+    from: formatBlockMinute(shift.startMinute),
+    to: formatBlockMinute(shift.endMinute),
   }));
 
   const charges = listCharges(db, functionId);
@@ -159,8 +153,8 @@ export function assembleOrder(
       salesManager: booking.salesManager,
       room: `${space.name} (${space.code})`,
       serviceDate: slot.serviceDate,
-      start: minuteLabel(slot.startMinute),
-      end: minuteLabel(slot.endMinute),
+      start: formatBlockMinute(slot.startMinute),
+      end: formatBlockMinute(slot.endMinute),
       setupStyle: slot.setupStyle,
       serviceStyle: slot.serviceStyle,
     },

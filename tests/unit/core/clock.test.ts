@@ -11,6 +11,7 @@ import {
   shiftTimeOfDay,
   shiftZoned,
   timeOfDay,
+  formatBlockMinute,
   timeZone,
   toInstant,
   zoneOffsetMinutes,
@@ -138,5 +139,32 @@ describe('shifting and comparing a zoned reading', () => {
   it('prints with its zone', () => {
     const reading = zonedDateTime(calendarDate('2025-04-19'), parseTimeOfDay('19:00'), denver);
     expect(formatZoned(reading)).toBe('2025-04-19 19:00 America/Denver');
+  });
+});
+
+describe('printing a minute of a function block', () => {
+  it('prints an ordinary evening time', () => {
+    expect(formatBlockMinute(1080)).toBe('6pm');
+    expect(formatBlockMinute(0)).toBe('12am');
+    expect(formatBlockMinute(1439)).toBe('11:59pm');
+  });
+
+  it('marks a minute that has rolled into the next day', () => {
+    expect(formatBlockMinute(1530)).toBe('1:30am (next day)');
+    expect(formatBlockMinute(1440)).toBe('12am (next day)');
+    expect(formatBlockMinute(1530, '+1')).toBe('1:30am+1');
+  });
+
+  it('marks a minute before the service date started', () => {
+    expect(formatBlockMinute(-60)).toBe('11pm (prev)');
+    expect(formatBlockMinute(-1)).toBe('11:59pm (prev)');
+  });
+
+  it('keeps the same reading whatever label the sheet uses', () => {
+    for (const minute of [0, 600, 1080, 1439, 1440, 1530, 2100]) {
+      const plain = formatBlockMinute(minute);
+      const short = formatBlockMinute(minute, '+1');
+      expect(plain.replace(' (next day)', '')).toBe(short.replace('+1', ''));
+    }
   });
 });

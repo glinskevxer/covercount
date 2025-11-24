@@ -10,7 +10,7 @@
  */
 
 import { compareCalendarDates, formatCalendarDate, type CalendarDate } from '../core/calendar.js';
-import { formatTimeOfDayShort, type TimeOfDay } from '../core/clock.js';
+import { formatBlockMinute } from '../core/clock.js';
 import { addMoney, formatMoney, zeroMoney, type Money } from '../core/money.js';
 import type { EntityId } from '../core/ids.js';
 import { listFunctions } from '../booking/functions.js';
@@ -57,12 +57,6 @@ export interface Resume {
   readonly totalCharges: Money;
   readonly totalLabour: Money;
   readonly openItems: number;
-}
-
-function clock(minute: number): string {
-  const wrapped = (((minute % 1440) + 1440) % 1440) as TimeOfDay;
-  const label = formatTimeOfDayShort(wrapped);
-  return minute >= 1440 ? `${label}+1` : label;
 }
 
 function openItemsFor(
@@ -129,8 +123,8 @@ export function conferenceResume(db: Database, bookingId: EntityId<'booking'>): 
     return {
       functionId: slot.id,
       serviceDate: slot.serviceDate,
-      start: clock(slot.startMinute),
-      end: clock(slot.endMinute),
+      start: formatBlockMinute(slot.startMinute, '+1'),
+      end: formatBlockMinute(slot.endMinute, '+1'),
       room: space.name,
       name: slot.name,
       serviceStyle: slot.serviceStyle,
