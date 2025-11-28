@@ -1096,3 +1096,112 @@ draw the bar charge onto the function
 | option | what it is |
 | --- | --- |
 | `--function <id>` | the function (required) |
+
+## `split`
+
+the covers per dish in a course
+
+### `split set`
+
+replace the split for one course
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--course <course>` | the course (required) |
+| `--covers <pairs>` | comma separated ITEM:count pairs (required) |
+
+### `split show`
+
+every split on a function, with anything that does not add up
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+### `split clear`
+
+take every split off a function
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+## `kitchen`
+
+what the split turns into
+
+### `kitchen plates`
+
+plates per dish, the split and the substitutions together
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+### `kitchen batches`
+
+whole batches per recipe, by station
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+### `kitchen stores`
+
+what has to come out of the stores, with the waste on the last pack
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+## `req`
+
+requisitions on the stores
+
+### `req raise`
+
+draw a requisition for one store off a set of functions
+
+| option | what it is |
+| --- | --- |
+| `--date <date>` | the service date (required) |
+| `--area <store>` | the store area (required) |
+| `--functions <ids>` | comma separated function ids (required) |
+| `--note <note>` | anything the store should know [default: ] |
+
+### `req show`
+
+the lines on a requisition
+
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the requisition (required) |
+
+### `req list`
+
+requisitions, filtered
+
+| option | what it is |
+| --- | --- |
+| `--date <date>` | only this service date |
+| `--area <store>` | only this store area |
+| `--status <status>` | only this status |
+
+### `req advance`
+
+issue, pick or cancel a requisition
+
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the requisition (required) |
+| `--to <status>` | issued, picked or cancelled (required) |
+
+### `req redraw`
+
+redraw a draft against the demand as it stands now
+
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the requisition (required) |
+| `--functions <ids>` | comma separated function ids (required) |

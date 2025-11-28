@@ -54,6 +54,11 @@ import {
   registerBarCommands,
   registerBarTierCommands,
 } from './commands/bar.js';
+import {
+  registerKitchenCommands,
+  registerRequisitionCommands,
+  registerSplitCommands,
+} from './commands/production.js';
 
 export const VERSION = '0.1.0';
 
@@ -114,6 +119,9 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerBarTierCommands(program, makeContext);
   registerBarCommands(program, makeContext);
   registerBarBillingCommands(program, makeContext);
+  registerSplitCommands(program, makeContext);
+  registerKitchenCommands(program, makeContext);
+  registerRequisitionCommands(program, makeContext);
   return program;
 }
 
