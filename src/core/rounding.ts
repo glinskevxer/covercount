@@ -113,7 +113,7 @@ export function allocateByWeight(total: number, weights: readonly number[]): num
     leftover -= 1;
   }
 
-  return sign === -1 ? shares.map((share) => -share) : shares;
+  return sign === -1 ? shares.map((share) => (share === 0 ? 0 : -share)) : shares;
 }
 
 /** Round a whole count up to the next multiple of `step`. */

@@ -52,7 +52,10 @@ export function money(amount: number, currency: CurrencyCode): Money {
   if (!Number.isSafeInteger(amount)) {
     throw new MoneyError(`money amount must be a safe integer of minor units, got ${amount}`);
   }
-  return { amount, currency };
+  // Normalise negative zero. It compares equal to zero but serialises as -0,
+  // which turns up in a JSON payload and in a test failure that reads as
+  // nonsense. A sweep over negative totals found it.
+  return { amount: amount === 0 ? 0 : amount, currency };
 }
 
 export function zeroMoney(currency: CurrencyCode): Money {
