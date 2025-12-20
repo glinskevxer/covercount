@@ -1205,3 +1205,99 @@ redraw a draft against the demand as it stands now
 | --- | --- |
 | `--id <id>` | the requisition (required) |
 | `--functions <ids>` | comma separated function ids (required) |
+
+## `staffing`
+
+the ratios and rates a property works to
+
+### `staffing rule`
+
+one head per so many covers, for a service style and a role
+
+| option | what it is |
+| --- | --- |
+| `--style <style>` | the service style (required) |
+| `--role <role>` | the role (required) |
+| `--per <covers>` | covers per head, or servers per head for a captain (required) |
+| `--minimum <heads>` | the fewest ever called in [default: 0] |
+| `--call <hours>` | the shortest shift the property pays [default: 4] |
+| `--lead-in <minutes>` | minutes before the function [default: 60] |
+| `--lead-out <minutes>` | minutes after it [default: 30] |
+
+### `staffing rules`
+
+the ratios for one service style
+
+| option | what it is |
+| --- | --- |
+| `--style <style>` | the service style (required) |
+
+### `staffing rate`
+
+what a role is paid from a date
+
+| option | what it is |
+| --- | --- |
+| `--role <role>` | the role (required) |
+| `--from <date>` | the date it takes effect (required) |
+| `--hourly <amount>` | the hourly rate (required) |
+
+### `staffing rates`
+
+every rate a role has ever been paid
+
+| option | what it is |
+| --- | --- |
+| `--role <role>` | the role (required) |
+
+### `staffing heads`
+
+what a cover count works out to, before anything is rostered
+
+| option | what it is |
+| --- | --- |
+| `--style <style>` | the service style (required) |
+| `--covers <covers>` | the covers (required) |
+
+## `crew`
+
+the roster on one function
+
+### `crew build`
+
+roster the function off the covers the room is set for
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--covers <count>` | work it out against this count instead |
+
+### `crew add`
+
+add a shift the rules did not produce
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--role <role>` | the role (required) |
+| `--heads <count>` | how many (required) |
+| `--from <minute>` | the minute of the day they start (required) |
+| `--to <minute>` | the minute they finish (required) |
+| `--hourly <amount>` | an hourly rate, if it is not the one on file |
+| `--note <note>` | why [default: ] |
+
+### `crew show`
+
+who is called in, and what it comes to
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+### `crew remove`
+
+take a shift off
+
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the shift (required) |

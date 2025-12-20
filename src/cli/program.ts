@@ -59,6 +59,7 @@ import {
   registerRequisitionCommands,
   registerSplitCommands,
 } from './commands/production.js';
+import { registerCrewCommands, registerStaffingCommands } from './commands/crew.js';
 
 export const VERSION = '0.1.0';
 
@@ -122,6 +123,8 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerSplitCommands(program, makeContext);
   registerKitchenCommands(program, makeContext);
   registerRequisitionCommands(program, makeContext);
+  registerStaffingCommands(program, makeContext);
+  registerCrewCommands(program, makeContext);
   return program;
 }
 
