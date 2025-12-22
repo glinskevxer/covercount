@@ -247,3 +247,75 @@ describe('covercount req', () => {
     expect(result.err).toContain('nothing on those functions comes out of NONFOOD');
   });
 });
+
+describe('the factor commands', () => {
+  it('publishes a factor, lists it and shows the default', () => {
+    const cli = cliHarness({ now: '2025-04-10T09:00:00.000Z' });
+    cli.run('store', 'init');
+    cli.run('demo', 'seed');
+
+    const silent = cli.json<{ factor: string; percent: number }>(
+      'factor',
+      'show',
+      ...P,
+      '--style',
+      'BUFFET',
+    );
+    expect(silent.factor).toBe('100%');
+    expect(silent.percent).toBe(100);
+    expect(cli.run('factor', 'list', ...P).out).toContain('makes exactly what it plates');
+
+    const set = cli.json<{ style: string; factor: string; note: string }>(
+      'factor',
+      'set',
+      ...P,
+      '--style',
+      'buffet',
+      '--percent',
+      '115',
+      '--note',
+      'display holds to the last table',
+    );
+    expect(set.style).toBe('BUFFET');
+    expect(set.factor).toBe('115%');
+    expect(set.note).toBe('display holds to the last table');
+
+    const listed = cli.json<{ style: string; factor: string }[]>('factor', 'list', ...P);
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.factor).toBe('115%');
+    expect(cli.json<{ factor: string }>('factor', 'show', ...P, '--style', 'BUFFET').factor).toBe(
+      '115%',
+    );
+  });
+
+  it('refuses a factor below one to one', () => {
+    const cli = cliHarness({ now: '2025-04-10T09:00:00.000Z' });
+    cli.run('store', 'init');
+    cli.run('demo', 'seed');
+    const result = cli.run('factor', 'set', ...P, '--style', 'BUFFET', '--percent', '90');
+    expect(result.code).toBe(1);
+    expect(result.err).toContain('cannot make less than it plates');
+  });
+
+  it('carries the factor through to the batch sheet', () => {
+    const { cli, slot } = seeded();
+    splitEverything(cli, slot);
+    const before = cli.json<
+      { recipe: string; plates: number; produced: number; batches: number }[]
+    >('kitchen', 'batches', '--function', slot);
+    const ribBefore = before.find((row) => row.recipe === 'BRAISED-SHORT-RIB');
+    expect(ribBefore?.produced).toBe(ribBefore?.plates);
+
+    cli.run('factor', 'set', ...P, '--style', 'PLATED', '--percent', '115');
+    const after = cli.json<{ recipe: string; plates: number; produced: number; batches: number }[]>(
+      'kitchen',
+      'batches',
+      '--function',
+      slot,
+    );
+    const ribAfter = after.find((row) => row.recipe === 'BRAISED-SHORT-RIB');
+    expect(ribAfter?.plates).toBe(ribBefore?.plates);
+    expect(ribAfter?.produced).toBeGreaterThan(ribBefore?.produced ?? 0);
+    expect(ribAfter?.batches).toBeGreaterThanOrEqual(ribBefore?.batches ?? 0);
+  });
+});

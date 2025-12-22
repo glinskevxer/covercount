@@ -30,6 +30,7 @@ import type { Database } from '../store/database.js';
 import { requireIngredient } from './ingredients.js';
 import { batchesFor, grossQuantity, recipeForItem, recipeLines, requireRecipe } from './recipes.js';
 import { pickOrder, type StoreArea } from './types.js';
+import { productionFactor, scaleForProduction } from './factors.js';
 
 export interface PlateDemand {
   readonly itemCode: CatalogCode;
@@ -39,7 +40,10 @@ export interface PlateDemand {
 export interface BatchDemand {
   readonly recipeCode: CatalogCode;
   readonly itemCode: CatalogCode | undefined;
+  /** Plates that reach a guest. */
   readonly plates: number;
+  /** Portions the kitchen has to make, which on a buffet is more. */
+  readonly produced: number;
   readonly batches: number;
   readonly station: string;
 }
@@ -93,6 +97,10 @@ export function assertEverySpecialResolved(
 
 export function batchDemand(db: Database, functionId: EntityId<'functionSlot'>): BatchDemand[] {
   const slot = requireFunction(db, functionId);
+  // The service style decides how much more than the plate count the kitchen
+  // has to make, and it is applied here rather than after the batching: a
+  // buffet at fifteen percent over six batches is seven, not six.
+  const factor = productionFactor(db, slot.propertyCode, slot.serviceStyle);
   const out: BatchDemand[] = [];
   for (const demand of plateDemand(db, functionId)) {
     const recipe = recipeForItem(db, slot.propertyCode, demand.itemCode);
@@ -103,11 +111,13 @@ export function batchDemand(db: Database, functionId: EntityId<'functionSlot'>):
         `${demand.itemCode} is on the split and no recipe on file makes it`,
       );
     }
+    const produced = scaleForProduction(demand.plates, factor);
     out.push({
       recipeCode: recipe.code,
       itemCode: recipe.itemCode,
       plates: demand.plates,
-      batches: batchesFor(recipe, demand.plates),
+      produced,
+      batches: batchesFor(recipe, produced),
       station: recipe.station,
     });
   }

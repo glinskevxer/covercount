@@ -26,8 +26,21 @@ import {
   requisitionLines,
   totalPacks,
 } from '../../production/requisitions.js';
+import {
+  listProductionFactors,
+  productionFactor,
+  setProductionFactor,
+} from '../../production/factors.js';
+import { formatRate, ratePercent } from '../../core/rate.js';
 import { render, renderRecord } from '../output.js';
-import { dateArg, entityArg, listArg, wholeNumber } from '../args.js';
+import {
+  dateArg,
+  entityArg,
+  listArg,
+  percentToPpm,
+  serviceStyleArg,
+  wholeNumber,
+} from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
 /** A split is given as ITEM:covers pairs, which is how a client writes one. */
@@ -160,6 +173,7 @@ export function registerKitchenCommands(program: Command, makeContext: () => Cli
                 station: row.station,
                 recipe: row.recipeCode,
                 plates: row.plates,
+                produced: row.produced,
                 batches: row.batches,
               })),
               {
@@ -169,6 +183,7 @@ export function registerKitchenCommands(program: Command, makeContext: () => Cli
                   { key: 'station' },
                   { key: 'recipe' },
                   { key: 'plates', align: 'right' },
+                  { key: 'produced', align: 'right' },
                   { key: 'batches', align: 'right' },
                 ],
               },
@@ -345,6 +360,81 @@ export function registerRequisitionCommands(program: Command, makeContext: () =>
               packs: row.packs,
             })),
             { format: context.format, empty: 'that requisition now carries no lines' },
+          ),
+        );
+      });
+    });
+}
+export function registerFactorCommands(program: Command, makeContext: () => CliContext): void {
+  const factor = program
+    .command('factor')
+    .description('how much more than the plate count a style has to be made');
+
+  factor
+    .command('set')
+    .description('publish the factor for one service style')
+    .requiredOption('--style <style>', 'PLATED, BUFFET, STATIONS, RECEPTION or FAMILY')
+    .requiredOption('--percent <percent>', 'the factor as a percent, so 115 is fifteen over')
+    .option('--note <text>', 'why the chef set it there')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const row = setProductionFactor(
+          db,
+          context.requireProperty(),
+          options.style ?? '',
+          percentToPpm('factor', options.percent ?? ''),
+          options.note ?? '',
+        );
+        context.write(
+          renderRecord(
+            { style: row.serviceStyle, factor: formatRate(row.factor), note: row.note },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  factor
+    .command('list')
+    .description('every factor a property has published')
+    .action(() => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            listProductionFactors(db, context.requireProperty()).map((row) => ({
+              style: row.serviceStyle,
+              factor: formatRate(row.factor),
+              note: row.note,
+            })),
+            {
+              format: context.format,
+              empty: 'that property makes exactly what it plates',
+              columns: [{ key: 'style' }, { key: 'factor', align: 'right' }, { key: 'note' }],
+            },
+          ),
+        );
+      });
+    });
+
+  factor
+    .command('show')
+    .description('the factor in force for one style, published or not')
+    .requiredOption('--style <style>', 'the service style')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const style = serviceStyleArg(options.style ?? '');
+        const value = productionFactor(db, context.requireProperty(), style);
+        context.write(
+          renderRecord(
+            {
+              style,
+              factor: formatRate(value),
+              percent: ratePercent(value),
+            },
+            { format: context.format },
           ),
         );
       });
