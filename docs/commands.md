@@ -608,6 +608,45 @@ the totals per charge category
 | --- | --- |
 | `--id <id>` | the invoice (required) |
 
+## `minimum`
+
+the food and beverage floor a function is sold against
+
+### `minimum set`
+
+put a minimum on a function
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--amount <amount>` | the floor, as money (required) |
+| `--food-only` | count food alone, leaving the bar out of it |
+| `--note <text>` | the contract clause it comes from |
+
+### `minimum show`
+
+where the function stands against its minimum
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+### `minimum sweep`
+
+put the shortfall on the bill, or take it back off
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+### `minimum clear`
+
+take the minimum off a function entirely
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
 ## `settle`
 
 paying an invoice off
@@ -1126,6 +1165,32 @@ take every split off a function
 | option | what it is |
 | --- | --- |
 | `--function <id>` | the function (required) |
+
+## `factor`
+
+how much more than the plate count a style has to be made
+
+### `factor set`
+
+publish the factor for one service style
+
+| option | what it is |
+| --- | --- |
+| `--style <style>` | PLATED, BUFFET, STATIONS, RECEPTION or FAMILY (required) |
+| `--percent <percent>` | the factor as a percent, so 115 is fifteen over (required) |
+| `--note <text>` | why the chef set it there |
+
+### `factor list`
+
+every factor a property has published
+
+### `factor show`
+
+the factor in force for one style, published or not
+
+| option | what it is |
+| --- | --- |
+| `--style <style>` | the service style (required) |
 
 ## `kitchen`
 

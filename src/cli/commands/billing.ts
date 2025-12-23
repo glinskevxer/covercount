@@ -14,6 +14,7 @@ import {
   lineTotal,
   listCharges,
   removeCharge,
+  removeChargesFrom,
 } from '../../billing/charges.js';
 import {
   advanceInvoice,
@@ -24,8 +25,15 @@ import {
   recordPayment,
   requireInvoice,
 } from '../../billing/invoice.js';
+import {
+  clearRevenueMinimum,
+  findRevenueMinimum,
+  minimumStanding,
+  setRevenueMinimum,
+  sweepMinimum,
+} from '../../billing/minimum.js';
 import { render, renderRecord } from '../output.js';
-import { entityArg, percentToPpm, wholeNumber } from '../args.js';
+import { entityArg, moneyArg, percentToPpm, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
 export function registerTaxCommands(program: Command, makeContext: () => CliContext): void {
@@ -473,5 +481,112 @@ export function registerPaymentCommands(program: Command, makeContext: () => Cli
         },
         { readOnly: true },
       );
+    });
+}
+
+export function registerMinimumCommands(program: Command, makeContext: () => CliContext): void {
+  const minimum = program
+    .command('minimum')
+    .description('the food and beverage floor a function is sold against');
+
+  minimum
+    .command('set')
+    .description('put a minimum on a function')
+    .requiredOption('--function <id>', 'the function')
+    .requiredOption('--amount <amount>', 'the floor, as money')
+    .option('--food-only', 'count food alone, leaving the bar out of it')
+    .option('--note <text>', 'the contract clause it comes from')
+    .action((options: Record<string, string | boolean>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const record = setRevenueMinimum(
+          db,
+          entityArg('functionSlot', String(options.function ?? '')),
+          {
+            minimumMinor: moneyArg('minimum', String(options.amount ?? '')).amount,
+            countsBeverage: options.foodOnly !== true,
+            note: typeof options.note === 'string' ? options.note : '',
+          },
+          context.now(),
+        );
+        context.write(
+          renderRecord(
+            {
+              minimum: formatMoney(record.minimum),
+              counts: record.countsBeverage ? 'food and beverage' : 'food only',
+              note: record.note,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  minimum
+    .command('show')
+    .description('where the function stands against its minimum')
+    .requiredOption('--function <id>', 'the function')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const id = entityArg('functionSlot', options.function ?? '');
+        if (findRevenueMinimum(db, id) === undefined) {
+          context.write('that function is not sold against a minimum');
+          return;
+        }
+        const standing = minimumStanding(db, id);
+        context.write(
+          renderRecord(
+            {
+              minimum: formatMoney(standing.minimum),
+              achieved: formatMoney(standing.achieved),
+              shortfall: formatMoney(standing.shortfall),
+              counts: standing.categories.join(' and '),
+              met: standing.met,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  minimum
+    .command('sweep')
+    .description('put the shortfall on the bill, or take it back off')
+    .requiredOption('--function <id>', 'the function')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const result = sweepMinimum(db, entityArg('functionSlot', options.function ?? ''));
+        context.write(
+          renderRecord(
+            {
+              shortfall: formatMoney(result.standing.shortfall),
+              billed:
+                result.charge === undefined ? 'nothing' : formatMoney(lineTotal(result.charge)),
+              replaced: result.removed,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  minimum
+    .command('clear')
+    .description('take the minimum off a function entirely')
+    .requiredOption('--function <id>', 'the function')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const id = entityArg('functionSlot', options.function ?? '');
+        const removed = clearRevenueMinimum(db, id);
+        context.write(
+          renderRecord(
+            { cleared: removed, lines: removeChargesFrom(db, id, 'MINIMUM') },
+            { format: context.format },
+          ),
+        );
+      });
     });
 }

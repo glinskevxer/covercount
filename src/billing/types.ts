@@ -32,6 +32,7 @@ export const CHARGE_SOURCES = [
   'BAR',
   'LABOUR',
   'CHANGE-ORDER',
+  'MINIMUM',
 ] as const;
 
 export type ChargeSource = (typeof CHARGE_SOURCES)[number];

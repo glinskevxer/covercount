@@ -40,6 +40,7 @@ import {
 import {
   registerChargeCommands,
   registerInvoiceCommands,
+  registerMinimumCommands,
   registerPaymentCommands,
   registerTaxCommands,
 } from './commands/billing.js';
@@ -107,6 +108,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerTaxCommands(program, makeContext);
   registerChargeCommands(program, makeContext);
   registerInvoiceCommands(program, makeContext);
+  registerMinimumCommands(program, makeContext);
   registerPaymentCommands(program, makeContext);
   registerOrderCommands(program, makeContext);
   registerChangeCommands(program, makeContext);
