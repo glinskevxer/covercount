@@ -21,6 +21,13 @@ import {
   shiftCost,
 } from '../../labour/shifts.js';
 import { isRole } from '../../labour/types.js';
+import {
+  checkDistribution,
+  distributeServiceCharge,
+  findDistribution,
+  listDistributionPoints,
+  setDistributionPoints,
+} from '../../labour/distribution.js';
 import { invalidInput } from '../../core/errors.js';
 import { render, renderRecord } from '../output.js';
 import { entityArg, moneyArg, serviceStyleArg, wholeNumber } from '../args.js';
@@ -306,6 +313,120 @@ export function registerCrewCommands(program: Command, makeContext: () => CliCon
       withOpenStore(context, (db) => {
         const removed = removeShift(db, entityArg('shift', options.id ?? ''));
         context.write(renderRecord({ id: options.id ?? '', removed }, { format: context.format }));
+      });
+    });
+}
+
+export function registerDistributionCommands(
+  program: Command,
+  makeContext: () => CliContext,
+): void {
+  const pool = program
+    .command('pool')
+    .description('handing the service charge back out to the crew');
+
+  pool
+    .command('points')
+    .description('publish the points a role earns in the split')
+    .requiredOption('--role <role>', 'the role')
+    .requiredOption('--points <points>', 'points, relative to the other roles')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const row = setDistributionPoints(
+          db,
+          context.requireProperty(),
+          options.role ?? '',
+          wholeNumber('points', options.points ?? ''),
+        );
+        context.write(
+          renderRecord({ role: row.role, points: row.points }, { format: context.format }),
+        );
+      });
+    });
+
+  pool
+    .command('table')
+    .description('the points every role earns')
+    .action(() => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            listDistributionPoints(db, context.requireProperty()).map((row) => ({
+              role: row.role,
+              points: row.points,
+            })),
+            {
+              format: context.format,
+              empty: 'no points are published, so every role earns one',
+              columns: [{ key: 'role' }, { key: 'points', align: 'right' }],
+            },
+          ),
+        );
+      });
+    });
+
+  pool
+    .command('split')
+    .description('split the service charge on an invoice across the crew')
+    .requiredOption('--invoice <id>', 'the invoice')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const result = distributeServiceCharge(
+          db,
+          entityArg('invoice', options.invoice ?? ''),
+          context.now(),
+        );
+        context.write(
+          render(
+            result.lines.map((line) => ({
+              role: line.role,
+              hours: (line.headHoursThousandths / 1000).toFixed(2),
+              points: line.points,
+              share: formatMoney(line.share),
+            })),
+            {
+              format: context.format,
+              empty: 'nobody worked it',
+              columns: [
+                { key: 'role' },
+                { key: 'hours', align: 'right' },
+                { key: 'points', align: 'right' },
+                { key: 'share', align: 'right' },
+              ],
+            },
+          ),
+        );
+      });
+    });
+
+  pool
+    .command('check')
+    .description('whether a recorded split still matches the invoice')
+    .requiredOption('--invoice <id>', 'the invoice')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const id = entityArg('invoice', options.invoice ?? '');
+        if (findDistribution(db, id) === undefined) {
+          context.write('that service charge has not been handed out yet');
+          return;
+        }
+        const check = checkDistribution(db, id);
+        context.write(
+          renderRecord(
+            {
+              pool: formatMoney(check.recordedPool),
+              now: formatMoney(check.currentPool),
+              shares: formatMoney(check.sharesTotal),
+              addsUp: check.addsUp,
+              stale: check.stale,
+            },
+            { format: context.format },
+          ),
+        );
       });
     });
 }

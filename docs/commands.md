@@ -1366,3 +1366,36 @@ take a shift off
 | option | what it is |
 | --- | --- |
 | `--id <id>` | the shift (required) |
+
+## `pool`
+
+handing the service charge back out to the crew
+
+### `pool points`
+
+publish the points a role earns in the split
+
+| option | what it is |
+| --- | --- |
+| `--role <role>` | the role (required) |
+| `--points <points>` | points, relative to the other roles (required) |
+
+### `pool table`
+
+the points every role earns
+
+### `pool split`
+
+split the service charge on an invoice across the crew
+
+| option | what it is |
+| --- | --- |
+| `--invoice <id>` | the invoice (required) |
+
+### `pool check`
+
+whether a recorded split still matches the invoice
+
+| option | what it is |
+| --- | --- |
+| `--invoice <id>` | the invoice (required) |
