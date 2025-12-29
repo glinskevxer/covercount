@@ -26,6 +26,7 @@ import {
   registerAccountCommands,
   registerBookingChangeCommands,
   registerBookingCommands,
+  registerDamagesCommands,
 } from './commands/booking.js';
 import {
   registerDiaryCommands,
@@ -102,6 +103,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerCalendarCommands(program, makeContext);
   registerAccountCommands(program, makeContext);
   registerBookingCommands(program, makeContext);
+  registerDamagesCommands(program, makeContext);
   registerBookingChangeCommands(program, makeContext);
   registerFunctionCommands(program, makeContext);
   registerFunctionChangeCommands(program, makeContext);

@@ -27,8 +27,16 @@ import {
   makeTentative,
 } from '../../booking/lifecycle.js';
 import { listFunctions } from '../../booking/functions.js';
+import {
+  assessDamages,
+  cancellationBands,
+  removeCancellationBand,
+  setCancellationBand,
+} from '../../booking/damages.js';
+import { formatRate } from '../../core/rate.js';
+import { formatMoney } from '../../core/money.js';
 import { render, renderRecord } from '../output.js';
-import { entityArg } from '../args.js';
+import { dateArg, entityArg, percentToPpm, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
 export function registerAccountCommands(program: Command, makeContext: () => CliContext): void {
@@ -394,5 +402,119 @@ export function registerBookingChangeCommands(
         },
         { readOnly: true },
       );
+    });
+}
+
+export function registerDamagesCommands(program: Command, makeContext: () => CliContext): void {
+  const damages = program
+    .command('damages')
+    .description('what a cancellation costs, and the scale it comes off');
+
+  damages
+    .command('band')
+    .description('publish one band of the cancellation scale')
+    .requiredOption('--days <days>', 'days before the function the band starts at')
+    .requiredOption('--percent <percent>', 'how much of the contract is owed')
+    .option('--note <text>', 'the clause it comes from')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const band = setCancellationBand(
+          db,
+          context.requireProperty(),
+          wholeNumber('days', options.days ?? ''),
+          percentToPpm('percent', options.percent ?? ''),
+          options.note ?? '',
+        );
+        context.write(
+          renderRecord(
+            { days: band.daysBefore, charge: formatRate(band.charge), note: band.note },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  damages
+    .command('scale')
+    .description('the whole published scale')
+    .action(() => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            cancellationBands(db, context.requireProperty()).map((band) => ({
+              days: band.daysBefore,
+              charge: formatRate(band.charge),
+              note: band.note,
+            })),
+            {
+              format: context.format,
+              empty: 'this property publishes no cancellation scale',
+              columns: [
+                { key: 'days', align: 'right' },
+                { key: 'charge', align: 'right' },
+                { key: 'note' },
+              ],
+            },
+          ),
+        );
+      });
+    });
+
+  damages
+    .command('drop')
+    .description('take one band off the scale')
+    .requiredOption('--days <days>', 'the band to remove')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const removed = removeCancellationBand(
+          db,
+          context.requireProperty(),
+          wholeNumber('days', options.days ?? ''),
+        );
+        context.write(renderRecord({ removed }, { format: context.format }));
+      });
+    });
+
+  damages
+    .command('quote')
+    .description('what this booking owes if it walks on a date')
+    .requiredOption('--booking <id>', 'the booking')
+    .requiredOption('--on <date>', 'the date notice is given')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const assessment = assessDamages(
+          db,
+          entityArg('booking', options.booking ?? ''),
+          dateArg(options.on ?? ''),
+        );
+        context.write(
+          render(
+            assessment.lines.map((line) => ({
+              function: line.name,
+              date: line.serviceDate,
+              out: line.daysOut,
+              band: formatRate(line.band.charge),
+              contracted: formatMoney(line.contracted),
+              owed: formatMoney(line.damages),
+            })),
+            {
+              format: context.format,
+              empty: 'nothing left to cancel',
+              columns: [
+                { key: 'function' },
+                { key: 'date' },
+                { key: 'out', align: 'right' },
+                { key: 'band', align: 'right' },
+                { key: 'contracted', align: 'right' },
+                { key: 'owed', align: 'right' },
+              ],
+            },
+          ),
+        );
+      });
     });
 }

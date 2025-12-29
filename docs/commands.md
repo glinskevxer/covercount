@@ -274,6 +274,41 @@ one booking with its functions
 | --- | --- |
 | `--id <id>` | the booking (required) |
 
+## `damages`
+
+what a cancellation costs, and the scale it comes off
+
+### `damages band`
+
+publish one band of the cancellation scale
+
+| option | what it is |
+| --- | --- |
+| `--days <days>` | days before the function the band starts at (required) |
+| `--percent <percent>` | how much of the contract is owed (required) |
+| `--note <text>` | the clause it comes from |
+
+### `damages scale`
+
+the whole published scale
+
+### `damages drop`
+
+take one band off the scale
+
+| option | what it is |
+| --- | --- |
+| `--days <days>` | the band to remove (required) |
+
+### `damages quote`
+
+what this booking owes if it walks on a date
+
+| option | what it is |
+| --- | --- |
+| `--booking <id>` | the booking (required) |
+| `--on <date>` | the date notice is given (required) |
+
 ## `deal`
 
 changing and advancing a booking
