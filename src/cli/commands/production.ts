@@ -31,13 +31,23 @@ import {
   productionFactor,
   setProductionFactor,
 } from '../../production/factors.js';
+import {
+  belowPar,
+  countStock,
+  listStockLevels,
+  moveStock,
+  orderLine,
+  stockMovements,
+} from '../../production/stock.js';
 import { formatRate, ratePercent } from '../../core/rate.js';
 import { render, renderRecord } from '../output.js';
 import {
+  codeArg,
   dateArg,
   entityArg,
   listArg,
   percentToPpm,
+  quantityArg,
   serviceStyleArg,
   wholeNumber,
 } from '../args.js';
@@ -435,6 +445,188 @@ export function registerFactorCommands(program: Command, makeContext: () => CliC
               percent: ratePercent(value),
             },
             { format: context.format },
+          ),
+        );
+      });
+    });
+}
+
+export function registerStockCommands(program: Command, makeContext: () => CliContext): void {
+  const stock = program.command('stock').description('what is on the shelf and what should be');
+
+  stock
+    .command('count')
+    .description('record a physical count')
+    .requiredOption('--item <code>', 'the ingredient')
+    .requiredOption('--on-hand <quantity>', 'what was counted, like 40kg')
+    .option('--par <quantity>', 'what the house wants sitting there')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const level = countStock(
+          db,
+          context.requireProperty(),
+          codeArg(options.item ?? ''),
+          {
+            onHand: quantityArg('on hand', options.onHand ?? ''),
+            par: options.par === undefined ? undefined : quantityArg('par', options.par),
+          },
+          context.now(),
+        );
+        context.write(
+          renderRecord(
+            {
+              item: level.ingredientCode,
+              onHand: formatQuantity(level.onHand),
+              par: formatQuantity(level.par),
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  stock
+    .command('move')
+    .description('issue to a function or receive a delivery')
+    .requiredOption('--item <code>', 'the ingredient')
+    .requiredOption('--by <quantity>', 'the movement, negative to issue')
+    .requiredOption('--reason', 'ISSUE, RECEIVE, WASTE or TRANSFER')
+    .option('--reference <text>', 'the requisition or delivery note')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const level = moveStock(
+          db,
+          context.requireProperty(),
+          codeArg(options.item ?? ''),
+          quantityArg('movement', options.by ?? ''),
+          options.reason ?? '',
+          context.now(),
+          options.reference ?? '',
+        );
+        context.write(
+          renderRecord(
+            { item: level.ingredientCode, onHand: formatQuantity(level.onHand) },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  stock
+    .command('list')
+    .description('the whole shelf')
+    .action(() => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            listStockLevels(db, context.requireProperty()).map((level) => ({
+              item: level.ingredientCode,
+              onHand: formatQuantity(level.onHand),
+              par: formatQuantity(level.par),
+              counted: level.countedAt.slice(0, 10),
+            })),
+            {
+              format: context.format,
+              empty: 'nothing has been counted',
+              columns: [
+                { key: 'item' },
+                { key: 'onHand', align: 'right' },
+                { key: 'par', align: 'right' },
+                { key: 'counted' },
+              ],
+            },
+          ),
+        );
+      });
+    });
+
+  stock
+    .command('short')
+    .description('everything sitting under its par')
+    .action(() => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            belowPar(db, context.requireProperty()).map((level) => ({
+              item: level.ingredientCode,
+              onHand: formatQuantity(level.onHand),
+              par: formatQuantity(level.par),
+            })),
+            {
+              format: context.format,
+              empty: 'nothing is under par',
+              columns: [
+                { key: 'item' },
+                { key: 'onHand', align: 'right' },
+                { key: 'par', align: 'right' },
+              ],
+            },
+          ),
+        );
+      });
+    });
+
+  stock
+    .command('order')
+    .description('what to order for a requirement, in whole packs')
+    .requiredOption('--item <code>', 'the ingredient')
+    .requiredOption('--need <quantity>', 'what the functions need')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const line = orderLine(
+          db,
+          context.requireProperty(),
+          codeArg(options.item ?? ''),
+          quantityArg('need', options.need ?? ''),
+        );
+        context.write(
+          renderRecord(
+            {
+              item: line.ingredientCode,
+              needed: formatQuantity(line.needed),
+              onHand: formatQuantity(line.onHand),
+              par: formatQuantity(line.par),
+              gap: formatQuantity(line.gap),
+              packs: line.packs,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  stock
+    .command('history')
+    .description('every movement against one ingredient')
+    .requiredOption('--item <code>', 'the ingredient')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            stockMovements(db, context.requireProperty(), codeArg(options.item ?? '')).map(
+              (move) => ({
+                moved: formatQuantity(move.moved),
+                reason: move.reason,
+                reference: move.reference,
+                at: move.movedAt,
+              }),
+            ),
+            {
+              format: context.format,
+              empty: 'that ingredient has never moved',
+              columns: [
+                { key: 'moved', align: 'right' },
+                { key: 'reason' },
+                { key: 'reference' },
+                { key: 'at' },
+              ],
+            },
           ),
         );
       });

@@ -18,6 +18,8 @@ import {
   type EntityId,
   type IdKind,
 } from '../core/ids.js';
+import { quantity, type Quantity } from '../core/quantity.js';
+import { parseUnitCode } from '../core/units.js';
 import { parseMoney, type CurrencyCode, type Money } from '../core/money.js';
 import { isServiceStyle, type ServiceStyle } from '../property/types.js';
 
@@ -101,4 +103,19 @@ export function listArg(value: string): string[] {
     .split(',')
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
+}
+
+/**
+ * A quantity as a chef writes one on a count sheet: an amount and a unit, with
+ * or without a space between them. "12KG", "12 kg" and "12.5 kg" all read.
+ */
+export function quantityArg(label: string, value: string): Quantity {
+  const match = /^\s*(-?\d+(?:\.\d+)?)\s*([A-Za-z-]+)\s*$/.exec(value);
+  if (match === null) {
+    throw invalidInput(
+      'cli.quantity',
+      `${label} reads as an amount and a unit, like 12kg, not ${JSON.stringify(value)}`,
+    );
+  }
+  return quantity(Number(match[1]), parseUnitCode(match[2] ?? ''));
 }

@@ -1227,6 +1227,56 @@ the factor in force for one style, published or not
 | --- | --- |
 | `--style <style>` | the service style (required) |
 
+## `stock`
+
+what is on the shelf and what should be
+
+### `stock count`
+
+record a physical count
+
+| option | what it is |
+| --- | --- |
+| `--item <code>` | the ingredient (required) |
+| `--on-hand <quantity>` | what was counted, like 40kg (required) |
+| `--par <quantity>` | what the house wants sitting there |
+
+### `stock move`
+
+issue to a function or receive a delivery
+
+| option | what it is |
+| --- | --- |
+| `--item <code>` | the ingredient (required) |
+| `--by <quantity>` | the movement, negative to issue (required) |
+| `--reason` | ISSUE, RECEIVE, WASTE or TRANSFER (required) |
+| `--reference <text>` | the requisition or delivery note |
+
+### `stock list`
+
+the whole shelf
+
+### `stock short`
+
+everything sitting under its par
+
+### `stock order`
+
+what to order for a requirement, in whole packs
+
+| option | what it is |
+| --- | --- |
+| `--item <code>` | the ingredient (required) |
+| `--need <quantity>` | what the functions need (required) |
+
+### `stock history`
+
+every movement against one ingredient
+
+| option | what it is |
+| --- | --- |
+| `--item <code>` | the ingredient (required) |
+
 ## `kitchen`
 
 what the split turns into
