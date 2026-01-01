@@ -1277,6 +1277,26 @@ every movement against one ingredient
 | --- | --- |
 | `--item <code>` | the ingredient (required) |
 
+## `purchase`
+
+what to buy in, netted against the shelf
+
+### `purchase draft`
+
+draft an order across a set of functions
+
+| option | what it is |
+| --- | --- |
+| `--functions <ids>` | comma separated function ids (required) |
+
+### `purchase summary`
+
+pack counts by store, without the detail
+
+| option | what it is |
+| --- | --- |
+| `--functions <ids>` | comma separated function ids (required) |
+
 ## `kitchen`
 
 what the split turns into

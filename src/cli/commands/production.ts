@@ -39,6 +39,7 @@ import {
   orderLine,
   stockMovements,
 } from '../../production/stock.js';
+import { draftPurchaseOrder, renderPurchaseOrder } from '../../production/purchasing.js';
 import { formatRate, ratePercent } from '../../core/rate.js';
 import { render, renderRecord } from '../output.js';
 import {
@@ -625,6 +626,76 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
                 { key: 'reason' },
                 { key: 'reference' },
                 { key: 'at' },
+              ],
+            },
+          ),
+        );
+      });
+    });
+}
+
+export function registerPurchaseCommands(program: Command, makeContext: () => CliContext): void {
+  const purchase = program
+    .command('purchase')
+    .description('what to buy in, netted against the shelf');
+
+  purchase
+    .command('draft')
+    .description('draft an order across a set of functions')
+    .requiredOption('--functions <ids>', 'comma separated function ids')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const order = draftPurchaseOrder(
+          db,
+          listArg(options.functions ?? '').map((id) => entityArg('functionSlot', id)),
+        );
+        if (context.format === 'json') {
+          context.write(
+            render(
+              order.sections.flatMap((section) =>
+                section.lines.map((line) => ({
+                  store: section.store,
+                  item: line.ingredientCode,
+                  need: formatQuantity(line.needed),
+                  have: formatQuantity(line.onHand),
+                  packs: line.packs,
+                })),
+              ),
+              { format: context.format, empty: 'nothing to order' },
+            ),
+          );
+          return;
+        }
+        context.write(renderPurchaseOrder(order));
+      });
+    });
+
+  purchase
+    .command('summary')
+    .description('pack counts by store, without the detail')
+    .requiredOption('--functions <ids>', 'comma separated function ids')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const order = draftPurchaseOrder(
+          db,
+          listArg(options.functions ?? '').map((id) => entityArg('functionSlot', id)),
+        );
+        context.write(
+          render(
+            order.sections.map((section) => ({
+              store: section.store,
+              items: section.lines.length,
+              packs: section.packs,
+            })),
+            {
+              format: context.format,
+              empty: 'the shelf covers it',
+              columns: [
+                { key: 'store' },
+                { key: 'items', align: 'right' },
+                { key: 'packs', align: 'right' },
               ],
             },
           ),
