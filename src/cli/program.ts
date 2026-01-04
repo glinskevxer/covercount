@@ -61,6 +61,7 @@ import {
   registerRequisitionCommands,
   registerFactorCommands,
   registerSplitCommands,
+  registerCostCommands,
   registerPurchaseCommands,
   registerStockCommands,
 } from './commands/production.js';
@@ -135,6 +136,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerFactorCommands(program, makeContext);
   registerStockCommands(program, makeContext);
   registerPurchaseCommands(program, makeContext);
+  registerCostCommands(program, makeContext);
   registerKitchenCommands(program, makeContext);
   registerRequisitionCommands(program, makeContext);
   registerStaffingCommands(program, makeContext);

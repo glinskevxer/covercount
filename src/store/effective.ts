@@ -125,3 +125,10 @@ export const LABOUR_RATES: EffectiveTable = {
   dateColumn: 'effective_from',
   valueColumn: 'hourly_minor',
 };
+
+export const INGREDIENT_COSTS: EffectiveTable = {
+  table: 'ingredient_cost',
+  keys: ['property_code', 'ingredient_code'],
+  dateColumn: 'effective_from',
+  valueColumn: 'pack_minor',
+};

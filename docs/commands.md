@@ -1297,6 +1297,48 @@ pack counts by store, without the detail
 | --- | --- |
 | `--functions <ids>` | comma separated function ids (required) |
 
+## `cost`
+
+what a plate costs to put out
+
+### `cost quote`
+
+record what a supplier charges for a pack
+
+| option | what it is |
+| --- | --- |
+| `--item <code>` | the ingredient (required) |
+| `--from <date>` | the date the price takes effect (required) |
+| `--pack <amount>` | what one pack costs (required) |
+| `--supplier <name>` | who quoted it |
+
+### `cost history`
+
+every price quoted against one ingredient
+
+| option | what it is |
+| --- | --- |
+| `--item <code>` | the ingredient (required) |
+
+### `cost recipe`
+
+cost one recipe, batch and portion
+
+| option | what it is |
+| --- | --- |
+| `--recipe <code>` | the recipe (required) |
+| `--on <date>` | the date to price it on (required) |
+
+### `cost margin`
+
+the margin on a recipe against a price
+
+| option | what it is |
+| --- | --- |
+| `--recipe <code>` | the recipe (required) |
+| `--on <date>` | the date to price it on (required) |
+| `--price <amount>` | what the plate sells for (required) |
+
 ## `kitchen`
 
 what the split turns into

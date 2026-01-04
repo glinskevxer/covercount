@@ -40,6 +40,8 @@ import {
   stockMovements,
 } from '../../production/stock.js';
 import { draftPurchaseOrder, renderPurchaseOrder } from '../../production/purchasing.js';
+import { costHistory, costRecipe, marginOn, setIngredientCost } from '../../production/costing.js';
+import { formatMoney } from '../../core/money.js';
 import { formatRate, ratePercent } from '../../core/rate.js';
 import { render, renderRecord } from '../output.js';
 import {
@@ -48,6 +50,7 @@ import {
   entityArg,
   listArg,
   percentToPpm,
+  moneyArg,
   quantityArg,
   serviceStyleArg,
   wholeNumber,
@@ -698,6 +701,147 @@ export function registerPurchaseCommands(program: Command, makeContext: () => Cl
                 { key: 'packs', align: 'right' },
               ],
             },
+          ),
+        );
+      });
+    });
+}
+
+export function registerCostCommands(program: Command, makeContext: () => CliContext): void {
+  const cost = program.command('cost').description('what a plate costs to put out');
+
+  cost
+    .command('quote')
+    .description('record what a supplier charges for a pack')
+    .requiredOption('--item <code>', 'the ingredient')
+    .requiredOption('--from <date>', 'the date the price takes effect')
+    .requiredOption('--pack <amount>', 'what one pack costs')
+    .option('--supplier <name>', 'who quoted it')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const quoted = setIngredientCost(
+          db,
+          context.requireProperty(),
+          codeArg(options.item ?? ''),
+          dateArg(options.from ?? ''),
+          moneyArg('pack price', options.pack ?? '').amount,
+          options.supplier ?? '',
+        );
+        context.write(
+          renderRecord(
+            {
+              item: quoted.ingredientCode,
+              from: quoted.effectiveFrom,
+              pack: formatMoney(quoted.pack),
+              supplier: quoted.supplier,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  cost
+    .command('history')
+    .description('every price quoted against one ingredient')
+    .requiredOption('--item <code>', 'the ingredient')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            costHistory(db, context.requireProperty(), codeArg(options.item ?? '')).map((row) => ({
+              from: row.effectiveFrom,
+              pack: formatMoney(row.pack),
+            })),
+            {
+              format: context.format,
+              empty: 'nobody has quoted that ingredient',
+              columns: [{ key: 'from' }, { key: 'pack', align: 'right' }],
+            },
+          ),
+        );
+      });
+    });
+
+  cost
+    .command('recipe')
+    .description('cost one recipe, batch and portion')
+    .requiredOption('--recipe <code>', 'the recipe')
+    .requiredOption('--on <date>', 'the date to price it on')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const costed = costRecipe(
+          db,
+          context.requireProperty(),
+          codeArg(options.recipe ?? ''),
+          dateArg(options.on ?? ''),
+        );
+        if (context.format === 'json') {
+          context.write(
+            render(
+              costed.lines.map((line) => ({
+                item: line.ingredientCode,
+                gross: formatQuantity(line.gross),
+                cost: formatMoney(line.lineCost),
+              })),
+              { format: context.format, empty: 'that recipe has no lines' },
+            ),
+          );
+          return;
+        }
+        const rows = costed.lines.map((line) => ({
+          item: line.ingredientCode,
+          gross: formatQuantity(line.gross),
+          cost: formatMoney(line.lineCost),
+        }));
+        context.write(
+          [
+            render(rows, {
+              format: context.format,
+              empty: 'that recipe has no lines',
+              columns: [
+                { key: 'item' },
+                { key: 'gross', align: 'right' },
+                { key: 'cost', align: 'right' },
+              ],
+            }),
+            '',
+            `batch of ${costed.batchPortions}: ${formatMoney(costed.batchCost)}`,
+            `per portion: ${formatMoney(costed.portionCost)}`,
+          ].join('\n'),
+        );
+      });
+    });
+
+  cost
+    .command('margin')
+    .description('the margin on a recipe against a price')
+    .requiredOption('--recipe <code>', 'the recipe')
+    .requiredOption('--on <date>', 'the date to price it on')
+    .requiredOption('--price <amount>', 'what the plate sells for')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const costed = costRecipe(
+          db,
+          context.requireProperty(),
+          codeArg(options.recipe ?? ''),
+          dateArg(options.on ?? ''),
+        );
+        const margin = marginOn(moneyArg('price', options.price ?? ''), costed.portionCost);
+        context.write(
+          renderRecord(
+            {
+              cost: formatMoney(margin.cost),
+              price: formatMoney(margin.price),
+              gross: formatMoney(margin.gross),
+              margin: formatRate(margin.marginRate),
+              food: formatRate(margin.costRate),
+            },
+            { format: context.format },
           ),
         );
       });
