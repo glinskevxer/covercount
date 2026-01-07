@@ -180,3 +180,86 @@ describe('the service over a socket', () => {
     await response.text();
   });
 });
+
+describe('the routes added for stock, money and the crew', () => {
+  it('serves the shelf and flags what is under par', async () => {
+    const { cli } = seeded();
+    const P = ['--property', 'CANYON'];
+    const add = (code: string, name: string, area: string, pack: string): void => {
+      const result = cli.run(
+        'larder',
+        'add',
+        ...P,
+        '--code',
+        code,
+        '--name',
+        name,
+        '--area',
+        area,
+        '--unit',
+        'LB',
+        '--pack',
+        pack,
+      );
+      expect(result.code).toBe(0);
+    };
+    add('SHORT-RIB', 'Short rib', 'BUTCHER', '40');
+    add('BUTTER', 'Unsalted butter', 'CHILL', '36');
+    expect(
+      cli.run('stock', 'count', ...P, '--item', 'SHORT-RIB', '--on-hand', '30LB', '--par', '50LB')
+        .code,
+    ).toBe(0);
+    expect(
+      cli.run('stock', 'count', ...P, '--item', 'BUTTER', '--on-hand', '80LB', '--par', '36LB')
+        .code,
+    ).toBe(0);
+
+    const base = await start(cli.storePath);
+    const { status, body } = await get(base, '/properties/CANYON/stock');
+    expect(status).toBe(200);
+    const rows = body as { item: string; under: boolean }[];
+    expect(rows).toHaveLength(2);
+    expect(rows.find((row) => row.item === 'SHORT-RIB')?.under).toBe(true);
+    expect(rows.find((row) => row.item === 'BUTTER')?.under).toBe(false);
+  });
+
+  it('serves the production factors', async () => {
+    const { cli } = seeded();
+    cli.run('factor', 'set', '--property', 'CANYON', '--style', 'BUFFET', '--percent', '115');
+    const base = await start(cli.storePath);
+    const { body } = await get(base, '/properties/CANYON/factors');
+    expect(body).toEqual([{ style: 'BUFFET', factor: '115%', note: '' }]);
+  });
+
+  it('serves the cancellation scale furthest out first', async () => {
+    const { cli } = seeded();
+    cli.run('damages', 'band', '--property', 'CANYON', '--days', '90', '--percent', '50');
+    cli.run('damages', 'band', '--property', 'CANYON', '--days', '0', '--percent', '100');
+    const base = await start(cli.storePath);
+    const { body } = await get(base, '/properties/CANYON/cancellation');
+    const bands = body as { days: number; charge: string }[];
+    expect(bands.map((band) => band.days)).toEqual([90, 0]);
+    expect(bands[0]?.charge).toBe('50%');
+  });
+
+  it('says when a function is not sold against a minimum, and when it is', async () => {
+    const { cli, slot } = seeded();
+    const base = await start(cli.storePath);
+    const before = await get(base, `/functions/${slot}/minimum`);
+    expect(before.body).toEqual({ sold: false });
+
+    cli.run('minimum', 'set', '--function', slot, '--amount', '15000');
+    const after = await get(base, `/functions/${slot}/minimum`);
+    const standing = after.body as { sold: boolean; shortfall: string; met: boolean };
+    expect(standing.sold).toBe(true);
+    expect(standing.shortfall).toBe('$15,000.00');
+    expect(standing.met).toBe(false);
+  });
+
+  it('answers 404 for a pool nobody has split', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    const { status } = await get(base, '/invoices/INV-2025-0001/pool');
+    expect(status).toBe(404);
+  });
+});

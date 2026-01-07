@@ -23,6 +23,14 @@ import { functionBoard, readerBoard, staffingSheet } from '../reports/house.js';
 import { pickList, productionSheet } from '../reports/kitchen.js';
 import { listProperties, requireProperty } from '../property/store.js';
 import { invoiceTotals, listInvoices } from '../billing/invoice.js';
+import { findRevenueMinimum, minimumStanding } from '../billing/minimum.js';
+import { findDistribution } from '../labour/distribution.js';
+import { belowPar, listStockLevels } from '../production/stock.js';
+import { draftPurchaseOrder } from '../production/purchasing.js';
+import { listProductionFactors } from '../production/factors.js';
+import { cancellationBands } from '../booking/damages.js';
+import { formatQuantity } from '../core/quantity.js';
+import { formatRate } from '../core/rate.js';
 import type { Database } from '../store/database.js';
 import { Router, requireParam, requireQuery, type RouteMatch } from './router.js';
 
@@ -230,6 +238,109 @@ function withFunctionRoutes(router: Router<ServiceContext>): Router<ServiceConte
           end: each.endMinute,
           status: each.status,
         }));
+    },
+  );
+
+  router.get(
+    '/properties/:property/stock',
+    'the shelf, and what sits under its par',
+    (match, context) => {
+      const property = propertyOf(match);
+      const short = new Set(belowPar(context.db, property).map((level) => level.ingredientCode));
+      return listStockLevels(context.db, property).map((level) => ({
+        item: level.ingredientCode,
+        onHand: formatQuantity(level.onHand),
+        par: formatQuantity(level.par),
+        under: short.has(level.ingredientCode),
+        countedAt: level.countedAt,
+      }));
+    },
+  );
+
+  router.get(
+    '/properties/:property/factors',
+    'how much more than the plate count each style makes',
+    (match, context) =>
+      listProductionFactors(context.db, propertyOf(match)).map((row) => ({
+        style: row.serviceStyle,
+        factor: formatRate(row.factor),
+        note: row.note,
+      })),
+  );
+
+  router.get(
+    '/properties/:property/cancellation',
+    'the published cancellation scale',
+    (match, context) =>
+      cancellationBands(context.db, propertyOf(match)).map((band) => ({
+        days: band.daysBefore,
+        charge: formatRate(band.charge),
+        note: band.note,
+      })),
+  );
+
+  router.get(
+    '/functions/:function/minimum',
+    'where the function stands against its minimum',
+    (match, context) => {
+      const id = slotOf(match);
+      if (findRevenueMinimum(context.db, id) === undefined) {
+        return { sold: false };
+      }
+      const standing = minimumStanding(context.db, id);
+      return {
+        sold: true,
+        minimum: formatMoney(standing.minimum),
+        achieved: formatMoney(standing.achieved),
+        shortfall: formatMoney(standing.shortfall),
+        counts: standing.categories,
+        met: standing.met,
+      };
+    },
+  );
+
+  router.get(
+    '/functions/:function/purchase',
+    'what this function needs bought in',
+    (match, context) => {
+      const order = draftPurchaseOrder(context.db, [slotOf(match)]);
+      return {
+        packs: order.packs,
+        covered: order.linesDropped,
+        sections: order.sections.map((section) => ({
+          store: section.store,
+          packs: section.packs,
+          lines: section.lines.map((line) => ({
+            item: line.ingredientCode,
+            need: formatQuantity(line.needed),
+            have: formatQuantity(line.onHand),
+            packs: line.packs,
+          })),
+        })),
+      };
+    },
+  );
+
+  router.get(
+    '/invoices/:invoice/pool',
+    'how the service charge was handed out',
+    (match, context) => {
+      const id = parseEntityId('invoice', requireParam(match, 'invoice'));
+      const split = findDistribution(context.db, id);
+      if (split === undefined) {
+        return { split: false };
+      }
+      return {
+        split: true,
+        pool: formatMoney(split.pool),
+        runAt: split.runAt,
+        lines: split.lines.map((line) => ({
+          role: line.role,
+          hours: line.headHoursThousandths / 1000,
+          points: line.points,
+          share: formatMoney(line.share),
+        })),
+      };
     },
   );
 

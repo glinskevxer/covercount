@@ -1339,6 +1339,40 @@ the margin on a recipe against a price
 | `--on <date>` | the date to price it on (required) |
 | `--price <amount>` | what the plate sells for (required) |
 
+## `larder`
+
+the ingredients the kitchen buys
+
+### `larder add`
+
+put an ingredient on file
+
+| option | what it is |
+| --- | --- |
+| `--code <code>` | short code the recipes use (required) |
+| `--name <name>` | what it is called on the invoice (required) |
+| `--area <store>` | DRY, CHILL, FREEZE, PRODUCE, BUTCHER, CELLAR or NONFOOD (required) |
+| `--unit <unit>` | the unit it is counted in (required) |
+| `--pack <size>` | how much comes in one pack (required) |
+| `--pack-unit <unit>` | the unit the pack is measured in, if it differs |
+
+### `larder list`
+
+every ingredient, or just one store
+
+| option | what it is |
+| --- | --- |
+| `--area <store>` | narrow to one store |
+| `--all` | include the ones taken off the list |
+
+### `larder retire`
+
+take an ingredient off the buying list without deleting it
+
+| option | what it is |
+| --- | --- |
+| `--code <code>` | the ingredient (required) |
+
 ## `kitchen`
 
 what the split turns into

@@ -42,6 +42,11 @@ import {
 import { draftPurchaseOrder, renderPurchaseOrder } from '../../production/purchasing.js';
 import { costHistory, costRecipe, marginOn, setIngredientCost } from '../../production/costing.js';
 import { formatMoney } from '../../core/money.js';
+import {
+  createIngredient,
+  listIngredients,
+  setIngredientActive,
+} from '../../production/ingredients.js';
 import { formatRate, ratePercent } from '../../core/rate.js';
 import { render, renderRecord } from '../output.js';
 import {
@@ -841,6 +846,109 @@ export function registerCostCommands(program: Command, makeContext: () => CliCon
               margin: formatRate(margin.marginRate),
               food: formatRate(margin.costRate),
             },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+}
+
+export function registerLarderCommands(program: Command, makeContext: () => CliContext): void {
+  const larder = program.command('larder').description('the ingredients the kitchen buys');
+
+  larder
+    .command('add')
+    .description('put an ingredient on file')
+    .requiredOption('--code <code>', 'short code the recipes use')
+    .requiredOption('--name <name>', 'what it is called on the invoice')
+    .requiredOption('--area <store>', 'DRY, CHILL, FREEZE, PRODUCE, BUTCHER, CELLAR or NONFOOD')
+    .requiredOption('--unit <unit>', 'the unit it is counted in')
+    .requiredOption('--pack <size>', 'how much comes in one pack')
+    .option('--pack-unit <unit>', 'the unit the pack is measured in, if it differs')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const ingredient = createIngredient(
+          db,
+          context.requireProperty(),
+          {
+            code: options.code ?? '',
+            name: options.name ?? '',
+            store: options.area ?? '',
+            purchaseUnit: options.unit ?? '',
+            packSize: Number(options.pack ?? ''),
+            ...(options.packUnit === undefined ? {} : { packUnit: options.packUnit }),
+          },
+          context.now(),
+        );
+        context.write(
+          renderRecord(
+            {
+              code: ingredient.code,
+              name: ingredient.name,
+              store: ingredient.store,
+              unit: ingredient.purchaseUnit,
+              pack: formatQuantity(ingredient.packSize),
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  larder
+    .command('list')
+    .description('every ingredient, or just one store')
+    .option('--area <store>', 'narrow to one store')
+    .option('--all', 'include the ones taken off the list')
+    .action((options: Record<string, string | boolean>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            listIngredients(db, context.requireProperty(), {
+              ...(typeof options.area === 'string' ? { store: options.area } : {}),
+              activeOnly: options.all !== true,
+            }).map((row) => ({
+              code: row.code,
+              name: row.name,
+              store: row.store,
+              unit: row.purchaseUnit,
+              pack: formatQuantity(row.packSize),
+              active: row.active,
+            })),
+            {
+              format: context.format,
+              empty: 'the larder is empty',
+              columns: [
+                { key: 'code' },
+                { key: 'name' },
+                { key: 'store' },
+                { key: 'unit' },
+                { key: 'pack', align: 'right' },
+              ],
+            },
+          ),
+        );
+      });
+    });
+
+  larder
+    .command('retire')
+    .description('take an ingredient off the buying list without deleting it')
+    .requiredOption('--code <code>', 'the ingredient')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const ingredient = setIngredientActive(
+          db,
+          context.requireProperty(),
+          codeArg(options.code ?? ''),
+          false,
+        );
+        context.write(
+          renderRecord(
+            { code: ingredient.code, active: ingredient.active },
             { format: context.format },
           ),
         );
