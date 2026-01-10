@@ -26,6 +26,7 @@ import { migration016 } from './migrations/016-distribution.js';
 import { migration017 } from './migrations/017-cancellation.js';
 import { migration018 } from './migrations/018-stock.js';
 import { migration019 } from './migrations/019-ingredient-cost.js';
+import { migration020 } from './migrations/020-production-actual.js';
 import { migrate, schemaVersion, type MigrateResult } from './migrate.js';
 import { openDatabase, type Database, type OpenDatabaseOptions } from './database.js';
 
@@ -49,6 +50,7 @@ export const MIGRATIONS: readonly Migration[] = [
   migration017,
   migration018,
   migration019,
+  migration020,
 ];
 
 export const TARGET_SCHEMA_VERSION = MIGRATIONS.reduce(

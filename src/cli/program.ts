@@ -61,6 +61,7 @@ import {
   registerRequisitionCommands,
   registerFactorCommands,
   registerSplitCommands,
+  registerActualCommands,
   registerCostCommands,
   registerLarderCommands,
   registerPurchaseCommands,
@@ -139,6 +140,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerPurchaseCommands(program, makeContext);
   registerCostCommands(program, makeContext);
   registerLarderCommands(program, makeContext);
+  registerActualCommands(program, makeContext);
   registerKitchenCommands(program, makeContext);
   registerRequisitionCommands(program, makeContext);
   registerStaffingCommands(program, makeContext);

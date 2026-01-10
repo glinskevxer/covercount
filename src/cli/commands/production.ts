@@ -47,6 +47,7 @@ import {
   listIngredients,
   setIngredientActive,
 } from '../../production/ingredients.js';
+import { productionVariance, recordProduced, suggestFactor } from '../../production/actuals.js';
 import { formatRate, ratePercent } from '../../core/rate.js';
 import { render, renderRecord } from '../output.js';
 import {
@@ -949,6 +950,105 @@ export function registerLarderCommands(program: Command, makeContext: () => CliC
         context.write(
           renderRecord(
             { code: ingredient.code, active: ingredient.active },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+}
+
+export function registerActualCommands(program: Command, makeContext: () => CliContext): void {
+  const actual = program.command('actual').description('what the kitchen made on the night');
+
+  actual
+    .command('record')
+    .description('record what went out and what came back')
+    .requiredOption('--function <id>', 'the function')
+    .requiredOption('--recipe <code>', 'the recipe')
+    .requiredOption('--produced <count>', 'portions that went out')
+    .option('--returned <count>', 'portions that came back', '0')
+    .option('--note <text>', 'anything the chef wants remembered')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const row = recordProduced(
+          db,
+          entityArg('functionSlot', options.function ?? ''),
+          codeArg(options.recipe ?? ''),
+          {
+            produced: wholeNumber('produced', options.produced ?? ''),
+            returned: wholeNumber('returned', options.returned ?? '0'),
+            note: options.note ?? '',
+          },
+          context.now(),
+        );
+        context.write(
+          renderRecord(
+            { recipe: row.recipeCode, produced: row.produced, returned: row.returned },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  actual
+    .command('variance')
+    .description('plan against actual for one function')
+    .requiredOption('--function <id>', 'the function')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const variance = productionVariance(db, entityArg('functionSlot', options.function ?? ''));
+        context.write(
+          render(
+            variance.rows.map((row) => ({
+              recipe: row.recipeCode,
+              plates: row.plates,
+              planned: row.planned,
+              produced: row.produced,
+              returned: row.returned,
+              over: row.overProduction,
+              waste: formatRate(row.wasteRate),
+              ranOut: row.ranOut,
+            })),
+            {
+              format: context.format,
+              empty: 'nothing has been recorded against that function',
+              columns: [
+                { key: 'recipe' },
+                { key: 'plates', align: 'right' },
+                { key: 'planned', align: 'right' },
+                { key: 'produced', align: 'right' },
+                { key: 'returned', align: 'right' },
+                { key: 'waste', align: 'right' },
+              ],
+            },
+          ),
+        );
+      });
+    });
+
+  actual
+    .command('suggest')
+    .description('what the production factor should have been')
+    .requiredOption('--functions <ids>', 'comma separated function ids, all one service style')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const suggestion = suggestFactor(
+          db,
+          listArg(options.functions ?? '').map((id) => entityArg('functionSlot', id)),
+        );
+        context.write(
+          renderRecord(
+            {
+              style: suggestion.serviceStyle,
+              current: formatRate(suggestion.current),
+              suggested: formatRate(suggestion.suggested),
+              functions: suggestion.functionsRead,
+              plates: suggestion.platesRead,
+              served: suggestion.servedRead,
+            },
             { format: context.format },
           ),
         );

@@ -1373,6 +1373,38 @@ take an ingredient off the buying list without deleting it
 | --- | --- |
 | `--code <code>` | the ingredient (required) |
 
+## `actual`
+
+what the kitchen made on the night
+
+### `actual record`
+
+record what went out and what came back
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--recipe <code>` | the recipe (required) |
+| `--produced <count>` | portions that went out (required) |
+| `--returned <count>` | portions that came back [default: 0] |
+| `--note <text>` | anything the chef wants remembered |
+
+### `actual variance`
+
+plan against actual for one function
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
+### `actual suggest`
+
+what the production factor should have been
+
+| option | what it is |
+| --- | --- |
+| `--functions <ids>` | comma separated function ids, all one service style (required) |
+
 ## `kitchen`
 
 what the split turns into
