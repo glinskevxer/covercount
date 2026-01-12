@@ -29,7 +29,7 @@ import {
   setDistributionPoints,
 } from '../../labour/distribution.js';
 import { invalidInput } from '../../core/errors.js';
-import { render, renderRecord } from '../output.js';
+import { columns, render, renderRecord } from '../output.js';
 import { entityArg, moneyArg, serviceStyleArg, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
@@ -360,7 +360,7 @@ export function registerDistributionCommands(
             {
               format: context.format,
               empty: 'no points are published, so every role earns one',
-              columns: [{ key: 'role' }, { key: 'points', align: 'right' }],
+              columns: columns('role', 'points>'),
             },
           ),
         );
@@ -390,12 +390,7 @@ export function registerDistributionCommands(
             {
               format: context.format,
               empty: 'nobody worked it',
-              columns: [
-                { key: 'role' },
-                { key: 'hours', align: 'right' },
-                { key: 'points', align: 'right' },
-                { key: 'share', align: 'right' },
-              ],
+              columns: columns('role', 'hours>', 'points>', 'share>'),
             },
           ),
         );

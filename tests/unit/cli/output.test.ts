@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  columns,
   isOutputFormat,
   render,
   renderCell,
@@ -92,5 +93,42 @@ describe('choosing a rendering', () => {
     expect(render(rows, { format: 'json' })).toContain('"code": "GRAND-A"');
     expect(render(rows, { format: 'plain' })).toContain('\t');
     expect(render(rows, { format: 'table' })).toContain('---');
+  });
+});
+
+describe('the column spec', () => {
+  it('reads a bare key as a left aligned column', () => {
+    expect(columns('store')).toEqual([{ key: 'store' }]);
+    expect(columns('store', 'item')).toEqual([{ key: 'store' }, { key: 'item' }]);
+  });
+
+  it('right aligns anything with a trailing arrow', () => {
+    expect(columns('packs>')).toEqual([{ key: 'packs', align: 'right' }]);
+    expect(columns('item', 'packs>', 'cost>')).toEqual([
+      { key: 'item' },
+      { key: 'packs', align: 'right' },
+      { key: 'cost', align: 'right' },
+    ]);
+  });
+
+  it('takes a heading that differs from the key', () => {
+    expect(columns('spaceCode:room')).toEqual([{ key: 'spaceCode', label: 'room' }]);
+    expect(columns('unitMinor:each>')).toEqual([
+      { key: 'unitMinor', label: 'each', align: 'right' },
+    ]);
+  });
+
+  it('hands back nothing for an empty spec', () => {
+    expect(columns()).toEqual([]);
+  });
+
+  it('drives the table the same way a written out list did', () => {
+    const rows = [
+      { store: 'BUTCHER', packs: 3 },
+      { store: 'PRODUCE', packs: 11 },
+    ];
+    expect(renderTable(rows, columns('store', 'packs>'))).toBe(
+      renderTable(rows, [{ key: 'store' }, { key: 'packs', align: 'right' }]),
+    );
   });
 });

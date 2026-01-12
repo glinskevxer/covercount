@@ -8,7 +8,7 @@ import type { Command } from 'commander';
 import { tableNames } from '../../store/database.js';
 import { appliedMigrations } from '../../store/migrate.js';
 import { MIGRATIONS, TARGET_SCHEMA_VERSION, storeVersion } from '../../store/schema.js';
-import { render, renderRecord } from '../output.js';
+import { columns, render, renderRecord } from '../output.js';
 import { withOpenStore, type CliContext } from '../context.js';
 import { backupIsCurrent, backupTo, readBackup } from '../../store/backup.js';
 import { seedDemoProperty } from '../../demo/property.js';
@@ -57,12 +57,7 @@ export function registerStoreCommands(program: Command, makeContext: () => CliCo
               {
                 format: context.format,
                 empty: 'no migrations have been applied',
-                columns: [
-                  { key: 'id', align: 'right' },
-                  { key: 'name' },
-                  { key: 'checksum' },
-                  { key: 'applied' },
-                ],
+                columns: columns('id>', 'name', 'checksum', 'applied'),
               },
             ),
           );
@@ -86,12 +81,7 @@ export function registerStoreCommands(program: Command, makeContext: () => CliCo
           })),
           {
             format: context.format,
-            columns: [
-              { key: 'id', align: 'right' },
-              { key: 'name' },
-              { key: 'statements', align: 'right' },
-              { key: 'target' },
-            ],
+            columns: columns('id>', 'name', 'statements>', 'target'),
           },
         ),
       );
@@ -164,7 +154,7 @@ export function registerBackupCommands(program: Command, makeContext: () => CliC
           {
             format: context.format,
             empty: 'that backup carries no migrations',
-            columns: [{ key: 'id', align: 'right' }, { key: 'name' }, { key: 'applied' }],
+            columns: columns('id>', 'name', 'applied'),
           },
         ),
       );

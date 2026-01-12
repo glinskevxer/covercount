@@ -22,7 +22,7 @@ import {
   staffingSheet,
 } from '../../reports/house.js';
 import { conferenceResume, renderResume } from '../../reports/resume.js';
-import { render } from '../output.js';
+import { columns, render } from '../output.js';
 import { entityArg } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
@@ -83,7 +83,7 @@ export function registerReportCommands(program: Command, makeContext: () => CliC
               {
                 format: context.format,
                 empty: 'nothing to pick',
-                columns: [{ key: 'store' }, { key: 'packs', align: 'right' }],
+                columns: columns('store', 'packs>'),
               },
             ),
           );

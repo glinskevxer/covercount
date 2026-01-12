@@ -35,7 +35,7 @@ import {
 } from '../../booking/damages.js';
 import { formatRate } from '../../core/rate.js';
 import { formatMoney } from '../../core/money.js';
-import { render, renderRecord } from '../output.js';
+import { columns, render, renderRecord } from '../output.js';
 import { dateArg, entityArg, percentToPpm, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
@@ -389,13 +389,7 @@ export function registerBookingChangeCommands(
               {
                 format: context.format,
                 empty: 'nothing has happened to that booking',
-                columns: [
-                  { key: 'seq', align: 'right' },
-                  { key: 'at' },
-                  { key: 'actor' },
-                  { key: 'kind' },
-                  { key: 'detail' },
-                ],
+                columns: columns('seq>', 'at', 'actor', 'kind', 'detail'),
               },
             ),
           );
@@ -451,11 +445,7 @@ export function registerDamagesCommands(program: Command, makeContext: () => Cli
             {
               format: context.format,
               empty: 'this property publishes no cancellation scale',
-              columns: [
-                { key: 'days', align: 'right' },
-                { key: 'charge', align: 'right' },
-                { key: 'note' },
-              ],
+              columns: columns('days>', 'charge>', 'note'),
             },
           ),
         );
@@ -504,14 +494,7 @@ export function registerDamagesCommands(program: Command, makeContext: () => Cli
             {
               format: context.format,
               empty: 'nothing left to cancel',
-              columns: [
-                { key: 'function' },
-                { key: 'date' },
-                { key: 'out', align: 'right' },
-                { key: 'band', align: 'right' },
-                { key: 'contracted', align: 'right' },
-                { key: 'owed', align: 'right' },
-              ],
+              columns: columns('function', 'date', 'out>', 'band>', 'contracted>', 'owed>'),
             },
           ),
         );

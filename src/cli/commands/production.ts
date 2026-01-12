@@ -49,7 +49,7 @@ import {
 } from '../../production/ingredients.js';
 import { productionVariance, recordProduced, suggestFactor } from '../../production/actuals.js';
 import { formatRate, ratePercent } from '../../core/rate.js';
-import { render, renderRecord } from '../output.js';
+import { columns, render, renderRecord } from '../output.js';
 import {
   codeArg,
   dateArg,
@@ -169,7 +169,7 @@ export function registerKitchenCommands(program: Command, makeContext: () => Cli
               {
                 format: context.format,
                 empty: 'nothing has been split yet',
-                columns: [{ key: 'item' }, { key: 'plates', align: 'right' }],
+                columns: columns('item', 'plates>'),
               },
             ),
           );
@@ -199,13 +199,7 @@ export function registerKitchenCommands(program: Command, makeContext: () => Cli
               {
                 format: context.format,
                 empty: 'nothing to make',
-                columns: [
-                  { key: 'station' },
-                  { key: 'recipe' },
-                  { key: 'plates', align: 'right' },
-                  { key: 'produced', align: 'right' },
-                  { key: 'batches', align: 'right' },
-                ],
+                columns: columns('station', 'recipe', 'plates>', 'produced>', 'batches>'),
               },
             ),
           );
@@ -431,7 +425,7 @@ export function registerFactorCommands(program: Command, makeContext: () => CliC
             {
               format: context.format,
               empty: 'that property makes exactly what it plates',
-              columns: [{ key: 'style' }, { key: 'factor', align: 'right' }, { key: 'note' }],
+              columns: columns('style', 'factor>', 'note'),
             },
           ),
         );
@@ -541,12 +535,7 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
             {
               format: context.format,
               empty: 'nothing has been counted',
-              columns: [
-                { key: 'item' },
-                { key: 'onHand', align: 'right' },
-                { key: 'par', align: 'right' },
-                { key: 'counted' },
-              ],
+              columns: columns('item', 'onHand>', 'par>', 'counted'),
             },
           ),
         );
@@ -569,11 +558,7 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
             {
               format: context.format,
               empty: 'nothing is under par',
-              columns: [
-                { key: 'item' },
-                { key: 'onHand', align: 'right' },
-                { key: 'par', align: 'right' },
-              ],
+              columns: columns('item', 'onHand>', 'par>'),
             },
           ),
         );
@@ -630,12 +615,7 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
             {
               format: context.format,
               empty: 'that ingredient has never moved',
-              columns: [
-                { key: 'moved', align: 'right' },
-                { key: 'reason' },
-                { key: 'reference' },
-                { key: 'at' },
-              ],
+              columns: columns('moved>', 'reason', 'reference', 'at'),
             },
           ),
         );
@@ -701,11 +681,7 @@ export function registerPurchaseCommands(program: Command, makeContext: () => Cl
             {
               format: context.format,
               empty: 'the shelf covers it',
-              columns: [
-                { key: 'store' },
-                { key: 'items', align: 'right' },
-                { key: 'packs', align: 'right' },
-              ],
+              columns: columns('store', 'items>', 'packs>'),
             },
           ),
         );
@@ -764,7 +740,7 @@ export function registerCostCommands(program: Command, makeContext: () => CliCon
             {
               format: context.format,
               empty: 'nobody has quoted that ingredient',
-              columns: [{ key: 'from' }, { key: 'pack', align: 'right' }],
+              columns: columns('from', 'pack>'),
             },
           ),
         );
@@ -808,11 +784,7 @@ export function registerCostCommands(program: Command, makeContext: () => CliCon
             render(rows, {
               format: context.format,
               empty: 'that recipe has no lines',
-              columns: [
-                { key: 'item' },
-                { key: 'gross', align: 'right' },
-                { key: 'cost', align: 'right' },
-              ],
+              columns: columns('item', 'gross>', 'cost>'),
             }),
             '',
             `batch of ${costed.batchPortions}: ${formatMoney(costed.batchCost)}`,
@@ -921,13 +893,7 @@ export function registerLarderCommands(program: Command, makeContext: () => CliC
             {
               format: context.format,
               empty: 'the larder is empty',
-              columns: [
-                { key: 'code' },
-                { key: 'name' },
-                { key: 'store' },
-                { key: 'unit' },
-                { key: 'pack', align: 'right' },
-              ],
+              columns: columns('code', 'name', 'store', 'unit', 'pack>'),
             },
           ),
         );
@@ -1014,14 +980,7 @@ export function registerActualCommands(program: Command, makeContext: () => CliC
             {
               format: context.format,
               empty: 'nothing has been recorded against that function',
-              columns: [
-                { key: 'recipe' },
-                { key: 'plates', align: 'right' },
-                { key: 'planned', align: 'right' },
-                { key: 'produced', align: 'right' },
-                { key: 'returned', align: 'right' },
-                { key: 'waste', align: 'right' },
-              ],
+              columns: columns('recipe', 'plates>', 'planned>', 'produced>', 'returned>', 'waste>'),
             },
           ),
         );

@@ -28,7 +28,7 @@ import {
   defineCombination,
   physicalFootprint,
 } from '../../property/combinations.js';
-import { render, renderRecord } from '../output.js';
+import { columns, render, renderRecord } from '../output.js';
 import { wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
@@ -203,15 +203,15 @@ export function registerSpaceCommands(program: Command, makeContext: () => CliCo
               {
                 format: context.format,
                 empty: 'no rooms are on file',
-                columns: [
-                  { key: 'code' },
-                  { key: 'name' },
-                  { key: 'floor' },
-                  { key: 'fire', align: 'right' },
-                  { key: 'combination' },
-                  { key: 'active' },
-                  { key: 'styles', align: 'right' },
-                ],
+                columns: columns(
+                  'code',
+                  'name',
+                  'floor',
+                  'fire>',
+                  'combination',
+                  'active',
+                  'styles>',
+                ),
               },
             ),
           );
@@ -246,7 +246,7 @@ export function registerSpaceCommands(program: Command, makeContext: () => CliCo
             })),
             {
               format: context.format,
-              columns: [{ key: 'style' }, { key: 'covers', align: 'right' }],
+              columns: columns('style', 'covers>'),
             },
           ),
         );

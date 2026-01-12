@@ -17,6 +17,30 @@ export interface Column {
   readonly align?: 'left' | 'right';
 }
 
+/**
+ * A column list from a short spec.
+ *
+ * Twenty five commands were each spelling out an array of objects to say that
+ * three columns exist and two of them are numbers. Written out, the shape of
+ * the table is buried in punctuation; written as a spec it is one line and the
+ * table reads the way it prints.
+ *
+ * A trailing '>' right aligns, which is what every count and every amount
+ * wants. A ':' names a heading that differs from the key.
+ */
+export function columns(...spec: readonly string[]): Column[] {
+  return spec.map((entry) => {
+    const right = entry.endsWith('>');
+    const body = right ? entry.slice(0, -1) : entry;
+    const [key = '', label] = body.split(':');
+    return {
+      key,
+      ...(label === undefined ? {} : { label }),
+      ...(right ? { align: 'right' as const } : {}),
+    };
+  });
+}
+
 export type OutputFormat = 'table' | 'json' | 'plain';
 
 export function isOutputFormat(value: string): value is OutputFormat {

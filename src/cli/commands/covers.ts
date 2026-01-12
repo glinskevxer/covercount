@@ -23,7 +23,7 @@ import {
   listSpecialMeals,
   removeSpecialMeal,
 } from '../../covers/special.js';
-import { render, renderRecord } from '../output.js';
+import { columns, render, renderRecord } from '../output.js';
 import { entityArg, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
@@ -184,15 +184,7 @@ export function registerCoverReadCommands(program: Command, makeContext: () => C
               {
                 format: context.format,
                 empty: 'the guarantee has never been set',
-                columns: [
-                  { key: 'seq', align: 'right' },
-                  { key: 'at' },
-                  { key: 'actor' },
-                  { key: 'from', align: 'right' },
-                  { key: 'to', align: 'right' },
-                  { key: 'afterCutoff' },
-                  { key: 'note' },
-                ],
+                columns: columns('seq>', 'at', 'actor', 'from>', 'to>', 'afterCutoff', 'note'),
               },
             ),
           );

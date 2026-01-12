@@ -5,7 +5,7 @@
 
 import type { Command } from 'commander';
 import { countByLevel, renderFindings, sweep } from '../../audit/sweep.js';
-import { render } from '../output.js';
+import { columns, render } from '../output.js';
 import { dateArg } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
@@ -63,7 +63,7 @@ export function registerAuditCommands(program: Command, makeContext: () => CliCo
               ],
               {
                 format: context.format,
-                columns: [{ key: 'level' }, { key: 'count', align: 'right' }],
+                columns: columns('level', 'count>'),
               },
             ),
           );

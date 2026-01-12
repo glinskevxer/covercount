@@ -18,7 +18,7 @@ import {
 } from '../../equipment/store.js';
 import { isSetupStyle } from '../../property/types.js';
 import { invalidInput } from '../../core/errors.js';
-import { render, renderRecord } from '../output.js';
+import { columns, render, renderRecord } from '../output.js';
 import { entityArg, moneyArg, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
@@ -207,14 +207,7 @@ export function registerPullCommands(program: Command, makeContext: () => CliCon
             {
               format: context.format,
               empty: 'that setup pulls nothing',
-              columns: [
-                { key: 'item' },
-                { key: 'name' },
-                { key: 'need', align: 'right' },
-                { key: 'owned', align: 'right' },
-                { key: 'hire', align: 'right' },
-                { key: 'hireCost', align: 'right' },
-              ],
+              columns: columns('item', 'name', 'need>', 'owned>', 'hire>', 'hireCost>'),
             },
           ),
         );
