@@ -32,8 +32,9 @@ import {
   setRevenueMinimum,
   sweepMinimum,
 } from '../../billing/minimum.js';
-import { render, renderRecord } from '../output.js';
-import { entityArg, moneyArg, percentToPpm, wholeNumber } from '../args.js';
+import { accountStatement, setCreditTerms } from '../../billing/statement.js';
+import { columns, render, renderRecord } from '../output.js';
+import { dateArg, entityArg, moneyArg, percentToPpm, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
 export function registerTaxCommands(program: Command, makeContext: () => CliContext): void {
@@ -585,6 +586,106 @@ export function registerMinimumCommands(program: Command, makeContext: () => Cli
           renderRecord(
             { cleared: removed, lines: removeChargesFrom(db, id, 'MINIMUM') },
             { format: context.format },
+          ),
+        );
+      });
+    });
+}
+
+export function registerStatementCommands(program: Command, makeContext: () => CliContext): void {
+  const statement = program
+    .command('statement')
+    .description('what an account owes, and how long it has owed it');
+
+  statement
+    .command('terms')
+    .description('how long an account has to pay')
+    .requiredOption('--account <code>', 'the account')
+    .requiredOption('--net <days>', 'days from issue to due')
+    .option('--limit <amount>', 'credit limit, nil for none', '0')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const terms = setCreditTerms(
+          db,
+          context.requireProperty(),
+          catalogCode(options.account ?? ''),
+          wholeNumber('net days', options.net ?? ''),
+          moneyArg('limit', options.limit ?? '0').amount,
+        );
+        context.write(
+          renderRecord(
+            {
+              account: terms.accountCode,
+              net: terms.netDays,
+              limit: formatMoney(terms.creditLimit),
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  statement
+    .command('show')
+    .description('the statement for one account')
+    .requiredOption('--account <code>', 'the account')
+    .requiredOption('--on <date>', 'the date to age it at')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const found = accountStatement(
+          db,
+          context.requireProperty(),
+          catalogCode(options.account ?? ''),
+          dateArg(options.on ?? ''),
+        );
+        context.write(
+          render(
+            found.lines.map((line) => ({
+              invoice: line.invoiceId,
+              posted: line.postAs,
+              issued: line.issuedOn,
+              due: line.dueOn,
+              age: line.bucket,
+              gross: formatMoney(line.gross),
+              balance: formatMoney(line.balance),
+            })),
+            {
+              format: context.format,
+              empty: 'that account has nothing outstanding',
+              columns: columns('invoice', 'posted', 'issued', 'due', 'age', 'gross>', 'balance>'),
+            },
+          ),
+        );
+      });
+    });
+
+  statement
+    .command('ageing')
+    .description('the balance by age bucket')
+    .requiredOption('--account <code>', 'the account')
+    .requiredOption('--on <date>', 'the date to age it at')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const found = accountStatement(
+          db,
+          context.requireProperty(),
+          catalogCode(options.account ?? ''),
+          dateArg(options.on ?? ''),
+        );
+        context.write(
+          render(
+            found.buckets.map((entry) => ({
+              age: entry.bucket,
+              balance: formatMoney(entry.balance),
+            })),
+            {
+              format: context.format,
+              empty: 'nothing to age',
+              columns: columns('age', 'balance>'),
+            },
           ),
         );
       });

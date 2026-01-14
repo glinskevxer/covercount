@@ -682,6 +682,38 @@ take the minimum off a function entirely
 | --- | --- |
 | `--function <id>` | the function (required) |
 
+## `statement`
+
+what an account owes, and how long it has owed it
+
+### `statement terms`
+
+how long an account has to pay
+
+| option | what it is |
+| --- | --- |
+| `--account <code>` | the account (required) |
+| `--net <days>` | days from issue to due (required) |
+| `--limit <amount>` | credit limit, nil for none [default: 0] |
+
+### `statement show`
+
+the statement for one account
+
+| option | what it is |
+| --- | --- |
+| `--account <code>` | the account (required) |
+| `--on <date>` | the date to age it at (required) |
+
+### `statement ageing`
+
+the balance by age bucket
+
+| option | what it is |
+| --- | --- |
+| `--account <code>` | the account (required) |
+| `--on <date>` | the date to age it at (required) |
+
 ## `settle`
 
 paying an invoice off
