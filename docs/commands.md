@@ -178,6 +178,57 @@ take a room out of service or put it back
 | `--code <code>` | the room (required) |
 | `--state <state>` | in or out (required) |
 
+## `hold`
+
+tentative space, ranked first and second
+
+### `hold take`
+
+put a hold on a room for a booking
+
+| option | what it is |
+| --- | --- |
+| `--booking <id>` | the booking (required) |
+| `--room <code>` | the room (required) |
+| `--date <date>` | the date held (required) |
+| `--start <time>` | start time as HH:MM (required) |
+| `--end <time>` | end time as HH:MM (required) |
+| `--until <date>` | the date the hold runs out (required) |
+| `--note <text>` | anything the sales office wants remembered |
+
+### `hold list`
+
+every live hold on a date
+
+| option | what it is |
+| --- | --- |
+| `--date <date>` | the date (required) |
+
+### `hold release`
+
+let a hold go and move everybody behind it up
+
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the hold (required) |
+
+### `hold challenge`
+
+tell the hold in front that somebody else wants the room
+
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the challenging hold (required) |
+| `--by <date>` | the date the incumbent has to decide by (required) |
+
+### `hold lapsed`
+
+holds whose own date has run out
+
+| option | what it is |
+| --- | --- |
+| `--on <date>` | the date to sweep at (required) |
+
 ## `calendar`
 
 the office and kitchen calendars

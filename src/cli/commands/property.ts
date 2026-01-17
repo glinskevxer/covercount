@@ -6,6 +6,13 @@
  */
 
 import type { Command } from 'commander';
+import {
+  challengeHold,
+  holdsOn,
+  lapsedHolds,
+  placeHold,
+  releaseHold,
+} from '../../property/holds.js';
 import { catalogCode } from '../../core/ids.js';
 import { formatRate, ratePercent } from '../../core/rate.js';
 import { formatTimeOfDay, parseTimeOfDay } from '../../core/clock.js';
@@ -29,7 +36,7 @@ import {
   physicalFootprint,
 } from '../../property/combinations.js';
 import { columns, render, renderRecord } from '../output.js';
-import { wholeNumber } from '../args.js';
+import { blockMinute, codeArg, dateArg, entityArg, wholeNumber } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
 
 export function registerPropertyCommands(program: Command, makeContext: () => CliContext): void {
@@ -398,5 +405,147 @@ export function registerCalendarCommands(program: Command, makeContext: () => Cl
         },
         { readOnly: true },
       );
+    });
+}
+
+export function registerHoldCommands(program: Command, makeContext: () => CliContext): void {
+  const hold = program.command('hold').description('tentative space, ranked first and second');
+
+  hold
+    .command('take')
+    .description('put a hold on a room for a booking')
+    .requiredOption('--booking <id>', 'the booking')
+    .requiredOption('--room <code>', 'the room')
+    .requiredOption('--date <date>', 'the date held')
+    .requiredOption('--start <time>', 'start time as HH:MM')
+    .requiredOption('--end <time>', 'end time as HH:MM')
+    .requiredOption('--until <date>', 'the date the hold runs out')
+    .option('--note <text>', 'anything the sales office wants remembered')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const taken = placeHold(
+          db,
+          context.requireProperty(),
+          {
+            spaceCode: codeArg(options.room ?? ''),
+            bookingId: entityArg('booking', options.booking ?? ''),
+            serviceDate: dateArg(options.date ?? ''),
+            startMinute: blockMinute('start', options.start ?? ''),
+            endMinute: blockMinute('end', options.end ?? ''),
+            holdsUntil: dateArg(options.until ?? ''),
+            note: options.note ?? '',
+          },
+          context.now(),
+        );
+        context.write(
+          renderRecord(
+            {
+              id: taken.id,
+              room: taken.spaceCode,
+              date: taken.serviceDate,
+              rank: taken.rank,
+              until: taken.holdsUntil,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  hold
+    .command('list')
+    .description('every live hold on a date')
+    .requiredOption('--date <date>', 'the date')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            holdsOn(db, context.requireProperty(), dateArg(options.date ?? '')).map((each) => ({
+              id: each.id,
+              room: each.spaceCode,
+              booking: each.bookingId,
+              rank: each.rank,
+              until: each.holdsUntil,
+            })),
+            {
+              format: context.format,
+              empty: 'nothing is held that day',
+              columns: columns('id>', 'room', 'booking', 'rank>', 'until'),
+            },
+          ),
+        );
+      });
+    });
+
+  hold
+    .command('release')
+    .description('let a hold go and move everybody behind it up')
+    .requiredOption('--id <id>', 'the hold')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const result = releaseHold(db, wholeNumber('hold', options.id ?? ''), context.now());
+        context.write(
+          renderRecord(
+            { released: result.released.id, promoted: result.promoted.length },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  hold
+    .command('challenge')
+    .description('tell the hold in front that somebody else wants the room')
+    .requiredOption('--id <id>', 'the challenging hold')
+    .requiredOption('--by <date>', 'the date the incumbent has to decide by')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const challenge = challengeHold(
+          db,
+          wholeNumber('hold', options.id ?? ''),
+          dateArg(options.by ?? ''),
+        );
+        context.write(
+          renderRecord(
+            {
+              challenger: challenge.challenger.id,
+              incumbent: challenge.incumbent?.id ?? 'none',
+              booking: challenge.incumbent?.bookingId ?? '',
+              decideBy: challenge.decideBy,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  hold
+    .command('lapsed')
+    .description('holds whose own date has run out')
+    .requiredOption('--on <date>', 'the date to sweep at')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            lapsedHolds(db, context.requireProperty(), dateArg(options.on ?? '')).map((each) => ({
+              id: each.id,
+              room: each.spaceCode,
+              booking: each.bookingId,
+              date: each.serviceDate,
+              until: each.holdsUntil,
+            })),
+            {
+              format: context.format,
+              empty: 'nothing has lapsed',
+              columns: columns('id>', 'room', 'booking', 'date', 'until'),
+            },
+          ),
+        );
+      });
     });
 }
