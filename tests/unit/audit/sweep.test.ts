@@ -3,7 +3,19 @@ import { withStore } from '../../support/store.js';
 import { CANYON } from '../../support/fixtures.js';
 import { KITCHEN_NOW, readyFunction } from '../../support/production.js';
 import { seedLabour, seedStaffingRules } from '../../support/labour.js';
-import { countByLevel, renderFindings, sweep } from '../../../src/audit/sweep.js';
+import {
+  countByLevel,
+  renderFindings,
+  sweep,
+  sweepAll,
+  sweepProperty,
+} from '../../../src/audit/sweep.js';
+import { quantity } from '../../../src/core/quantity.js';
+import { countStock } from '../../../src/production/stock.js';
+import { recordProduced } from '../../../src/production/actuals.js';
+import { setCancellationBand } from '../../../src/booking/damages.js';
+import { placeHold } from '../../../src/property/holds.js';
+import { setRevenueMinimum } from '../../../src/billing/minimum.js';
 import { addSpecialMeal } from '../../../src/covers/special.js';
 import { setCourseSplit } from '../../../src/covers/selections.js';
 import { editFunction } from '../../../src/booking/functions.js';
@@ -138,6 +150,107 @@ describe('reporting the findings', () => {
       const text = renderFindings(findings);
       expect(text).toContain(`${counts.error} errors, ${counts.warning} warnings`);
       expect(text).toContain('special.undecided'.length > 0 ? 'no dish decided' : '');
+    });
+  });
+});
+
+describe('the property half of the sweep', () => {
+  const TODAY = calendarDate('2025-03-01');
+
+  it('finds nothing on a house with nothing published', () => {
+    withStore((db) => {
+      readyFunction(db, { guarantee: 180 });
+      expect(sweepProperty(db, CANYON, { today: TODAY })).toEqual([]);
+    });
+  });
+
+  it('flags an ingredient under its par', () => {
+    withStore((db) => {
+      readyFunction(db, { guarantee: 180 });
+      countStock(
+        db,
+        CANYON,
+        catalogCode('SHORT-RIB'),
+        { onHand: quantity(10, 'LB'), par: quantity(50, 'LB') },
+        KITCHEN_NOW,
+      );
+      const findings = sweepProperty(db, CANYON, { today: TODAY });
+      expect(findings.map((row) => row.code)).toContain('stock.underpar');
+    });
+  });
+
+  it('says nothing about an ingredient with no par at all', () => {
+    withStore((db) => {
+      readyFunction(db, { guarantee: 180 });
+      countStock(db, CANYON, catalogCode('SHORT-RIB'), { onHand: quantity(0, 'LB') }, KITCHEN_NOW);
+      expect(sweepProperty(db, CANYON, { today: TODAY })).toEqual([]);
+    });
+  });
+
+  it('flags a cancellation scale with no band at nil days', () => {
+    withStore((db) => {
+      readyFunction(db, { guarantee: 180 });
+      setCancellationBand(db, CANYON, 90, 500_000);
+      const findings = sweepProperty(db, CANYON, { today: TODAY });
+      const hole = findings.find((row) => row.code === 'damages.hole');
+      expect(hole?.level).toBe('error');
+
+      setCancellationBand(db, CANYON, 0, 1_000_000);
+      expect(
+        sweepProperty(db, CANYON, { today: TODAY }).some((row) => row.code === 'damages.hole'),
+      ).toBe(false);
+    });
+  });
+
+  it('flags a lapsed hold that is still live', () => {
+    withStore((db) => {
+      const slot = readyFunction(db, { guarantee: 180 });
+      placeHold(
+        db,
+        CANYON,
+        {
+          spaceCode: catalogCode('ASPEN'),
+          bookingId: slot.bookingId,
+          serviceDate: calendarDate('2025-04-18'),
+          startMinute: 600,
+          endMinute: 900,
+          holdsUntil: calendarDate('2025-02-14'),
+        },
+        KITCHEN_NOW,
+      );
+      const findings = sweepProperty(db, CANYON, { today: TODAY });
+      expect(findings.map((row) => row.code)).toContain('hold.lapsed');
+      expect(sweepProperty(db, CANYON, { today: calendarDate('2025-02-01') })).toEqual([]);
+    });
+  });
+
+  it('flags a function short of its minimum', () => {
+    withStore((db) => {
+      const slot = readyFunction(db, { guarantee: 180 });
+      setRevenueMinimum(db, slot.id, { minimumMinor: 5_000_000 }, KITCHEN_NOW);
+      const findings = sweep(db, CANYON, { today: TODAY });
+      expect(findings.map((row) => row.code)).toContain('minimum.short');
+    });
+  });
+
+  it('flags a recipe that put out less than the plate count', () => {
+    withStore((db) => {
+      const slot = readyFunction(db, { guarantee: 180 });
+      recordProduced(db, slot.id, catalogCode('BRAISED-SHORT-RIB'), { produced: 40 }, KITCHEN_NOW);
+      const findings = sweep(db, CANYON, { today: TODAY });
+      const short = findings.find((row) => row.code === 'kitchen.short');
+      expect(short?.message).toContain('somebody went without');
+    });
+  });
+
+  it('runs both halves together', () => {
+    withStore((db) => {
+      const slot = readyFunction(db, { guarantee: 180 });
+      setRevenueMinimum(db, slot.id, { minimumMinor: 5_000_000 }, KITCHEN_NOW);
+      setCancellationBand(db, CANYON, 90, 500_000);
+      const codes = sweepAll(db, CANYON, { today: TODAY }).map((row) => row.code);
+      expect(codes).toContain('minimum.short');
+      expect(codes).toContain('damages.hole');
     });
   });
 });

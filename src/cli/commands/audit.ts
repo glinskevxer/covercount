@@ -4,7 +4,7 @@
  */
 
 import type { Command } from 'commander';
-import { countByLevel, renderFindings, sweep } from '../../audit/sweep.js';
+import { countByLevel, renderFindings, sweepAll } from '../../audit/sweep.js';
 import { columns, render } from '../output.js';
 import { dateArg } from '../args.js';
 import { withOpenStore, type CliContext } from '../context.js';
@@ -23,7 +23,7 @@ export function registerAuditCommands(program: Command, makeContext: () => CliCo
       withOpenStore(
         context,
         (db) => {
-          const all = sweep(db, context.requireProperty(), {
+          const all = sweepAll(db, context.requireProperty(), {
             today: dateArg(String(options.today ?? '')),
             ...(options.from === undefined ? {} : { from: dateArg(String(options.from)) }),
           });
@@ -53,7 +53,7 @@ export function registerAuditCommands(program: Command, makeContext: () => CliCo
         context,
         (db) => {
           const counts = countByLevel(
-            sweep(db, context.requireProperty(), { today: dateArg(options.today ?? '') }),
+            sweepAll(db, context.requireProperty(), { today: dateArg(options.today ?? '') }),
           );
           context.write(
             render(

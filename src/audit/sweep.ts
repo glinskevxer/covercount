@@ -24,6 +24,14 @@ import { splitProblems } from '../covers/selections.js';
 import { listSpecialMeals, totalSpecialCovers } from '../covers/special.js';
 import { liveRevision, revisionIsStale } from '../orders/revisions.js';
 import { listShifts } from '../labour/shifts.js';
+import { findRevenueMinimum, minimumStanding } from '../billing/minimum.js';
+import { checkDistribution, findDistribution } from '../labour/distribution.js';
+import { listInvoices } from '../billing/invoice.js';
+import { cancellationBands } from '../booking/damages.js';
+import { lapsedHolds } from '../property/holds.js';
+import { listStockLevels } from '../production/stock.js';
+import { productionVariance } from '../production/actuals.js';
+import { formatMoney } from '../core/money.js';
 import { foreignKeyCheck, type Database } from '../store/database.js';
 
 export const FINDING_LEVELS = ['error', 'warning'] as const;
@@ -206,6 +214,31 @@ function sweepPaperwork(db: Database, functionId: EntityId<'functionSlot'>): Fin
     }
   }
 
+  const minimum = findRevenueMinimum(db, functionId);
+  if (minimum !== undefined) {
+    const standing = minimumStanding(db, functionId);
+    if (!standing.met) {
+      findings.push({
+        level: 'warning',
+        code: 'minimum.short',
+        subject: functionId,
+        message: `${functionId} is ${formatMoney(standing.shortfall)} under its minimum and the shortfall is not on the bill`,
+      });
+    }
+  }
+
+  const variance = productionVariance(db, functionId);
+  for (const row of variance.rows) {
+    if (row.ranOut) {
+      findings.push({
+        level: 'warning',
+        code: 'kitchen.short',
+        subject: functionId,
+        message: `${row.recipeCode} put out ${row.produced} against ${row.plates} plates, so somebody went without`,
+      });
+    }
+  }
+
   const live = liveRevision(db, functionId);
   if (live !== undefined && live.status === 'SIGNED' && revisionIsStale(db, functionId)) {
     findings.push({
@@ -217,6 +250,83 @@ function sweepPaperwork(db: Database, functionId: EntityId<'functionSlot'>): Fin
   }
 
   return findings;
+}
+
+/**
+ * The checks that belong to the property rather than to one function: the
+ * shelf, the sales office's holds, the cancellation scale and the pools that
+ * have drifted since they were split.
+ */
+export function sweepProperty(
+  db: Database,
+  propertyCode: CatalogCode,
+  options: SweepOptions,
+): Finding[] {
+  const findings: Finding[] = [];
+
+  for (const level of listStockLevels(db, propertyCode)) {
+    if (level.par.milli > 0 && level.onHand.milli < level.par.milli) {
+      findings.push({
+        level: 'warning',
+        code: 'stock.underpar',
+        subject: level.ingredientCode,
+        message: `${level.ingredientCode} is under its par and nothing is on order`,
+      });
+    }
+  }
+
+  for (const lapsed of lapsedHolds(db, propertyCode, options.today)) {
+    findings.push({
+      level: 'warning',
+      code: 'hold.lapsed',
+      subject: String(lapsed.id),
+      message: `hold ${lapsed.id} on ${lapsed.spaceCode} ran out on ${lapsed.holdsUntil} and is still live`,
+    });
+  }
+
+  const bands = cancellationBands(db, propertyCode);
+  if (bands.length > 0 && !bands.some((band) => band.daysBefore === 0)) {
+    findings.push({
+      level: 'error',
+      code: 'damages.hole',
+      subject: propertyCode,
+      message: `${propertyCode} publishes a cancellation scale with no band at nil days, so a walkaway on the day cannot be priced`,
+    });
+  }
+
+  for (const invoice of listInvoices(db, propertyCode)) {
+    if (findDistribution(db, invoice.id) === undefined) {
+      continue;
+    }
+    const check = checkDistribution(db, invoice.id);
+    if (check.stale) {
+      findings.push({
+        level: 'warning',
+        code: 'pool.stale',
+        subject: invoice.id,
+        message: `the service charge on ${invoice.id} was split at ${formatMoney(check.recordedPool)} and now stands at ${formatMoney(check.currentPool)}`,
+      });
+    }
+    if (!check.addsUp) {
+      findings.push({
+        level: 'error',
+        code: 'pool.short',
+        subject: invoice.id,
+        message: `the shares on ${invoice.id} add to ${formatMoney(check.sharesTotal)} against a pool of ${formatMoney(check.recordedPool)}`,
+      });
+    }
+  }
+
+  return findings;
+}
+
+/** Both halves of the sweep, which is what the command line runs. */
+export function sweepAll(
+  db: Database,
+  propertyCode: CatalogCode,
+  options: SweepOptions,
+): Finding[] {
+  return [...sweep(db, propertyCode, options), ...sweepProperty(db, propertyCode, options)];
 }
 
 function requirePropertyOf(db: Database, functionId: EntityId<'functionSlot'>): CatalogCode {
