@@ -90,8 +90,17 @@ describe('the program itself', () => {
 
   it('refuses an output format it does not have', () => {
     const cli = cliHarness();
-    const result = cli.run('--format', 'csv', 'store', 'migrations');
+    const result = cli.run('--format', 'xml', 'store', 'migrations');
     expect(result.code).toBe(1);
     expect(result.err).toContain('not an output format');
+  });
+
+  it('prints the migration list as a spreadsheet', () => {
+    const cli = cliHarness();
+    cli.run('store', 'init');
+    const result = cli.run('--format', 'csv', 'store', 'migrations');
+    expect(result.code).toBe(0);
+    expect(result.lines[0]).toContain('id,name');
+    expect(result.lines.length).toBeGreaterThan(20);
   });
 });

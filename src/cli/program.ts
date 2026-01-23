@@ -92,7 +92,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
     .version(VERSION)
     .option('-s, --store <path>', 'path to the property store')
     .option('-p, --property <code>', 'property code to work in')
-    .option('-f, --format <format>', 'table, plain or json')
+    .option('-f, --format <format>', 'table, plain, json or csv')
     .option('-a, --actor <name>', 'who to record the change against')
     .exitOverride()
     .configureOutput({

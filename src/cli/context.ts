@@ -56,7 +56,7 @@ export function buildContext(input: BuildContextInput): CliContext {
   if (!isOutputFormat(formatText)) {
     throw invalidInput(
       'cli.format',
-      `${formatText} is not an output format, use table, plain or json`,
+      `${formatText} is not an output format, use table, plain, json or csv`,
     );
   }
 

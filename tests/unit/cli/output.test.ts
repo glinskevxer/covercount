@@ -86,7 +86,8 @@ describe('choosing a rendering', () => {
     expect(isOutputFormat('table')).toBe(true);
     expect(isOutputFormat('plain')).toBe(true);
     expect(isOutputFormat('json')).toBe(true);
-    expect(isOutputFormat('csv')).toBe(false);
+    expect(isOutputFormat('csv')).toBe(true);
+    expect(isOutputFormat('xml')).toBe(false);
   });
 
   it('routes to each rendering', () => {
@@ -130,5 +131,44 @@ describe('the column spec', () => {
     expect(renderTable(rows, columns('store', 'packs>'))).toBe(
       renderTable(rows, [{ key: 'store' }, { key: 'packs', align: 'right' }]),
     );
+  });
+});
+
+describe('comma separated output', () => {
+  const rows = [
+    { room: 'GRAND-A', covers: 180 },
+    { room: 'Fenwick, Halvorsen', covers: 40 },
+  ];
+
+  it('writes a header row and quotes what needs it', () => {
+    expect(render(rows, { format: 'csv' })).toBe(
+      'room,covers\nGRAND-A,180\n"Fenwick, Halvorsen",40',
+    );
+  });
+
+  it('follows the column list and its headings', () => {
+    expect(render(rows, { format: 'csv', columns: columns('covers:seats>', 'room') })).toBe(
+      'seats,room\n180,GRAND-A\n40,"Fenwick, Halvorsen"',
+    );
+  });
+
+  it('writes the header even on a quiet day rather than the empty message', () => {
+    expect(
+      render([], { format: 'csv', columns: columns('room', 'covers>'), empty: 'nothing' }),
+    ).toBe('room,covers');
+    expect(render([], { format: 'table', columns: columns('room'), empty: 'nothing' })).toBe(
+      'nothing',
+    );
+  });
+
+  it('writes one record as a header and a line', () => {
+    expect(renderRecord({ room: 'GRAND-A', covers: 180 }, { format: 'csv' })).toBe(
+      'room,covers\nGRAND-A,180',
+    );
+  });
+
+  it('is a format the command line accepts', () => {
+    expect(isOutputFormat('csv')).toBe(true);
+    expect(isOutputFormat('xml')).toBe(false);
   });
 });

@@ -11,7 +11,7 @@ Run `npm run docs` after changing a command.
 | `-V, --version` | output the version number |
 | `-s, --store <path>` | path to the property store |
 | `-p, --property <code>` | property code to work in |
-| `-f, --format <format>` | table, plain or json |
+| `-f, --format <format>` | table, plain, json or csv |
 | `-a, --actor <name>` | who to record the change against |
 
 ## `store`

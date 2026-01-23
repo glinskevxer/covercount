@@ -1,11 +1,14 @@
 /**
  * How the command line prints.
  *
- * Two renderings of the same value: a fixed width table for a person and JSON
- * for anything downstream. Every command builds a plain object or a list of
- * them and hands it here, so no command has to know which the caller asked
- * for and no command formats a number twice.
+ * Four renderings of the same value: a fixed width table for a person, JSON
+ * for anything downstream, tab separated for a shell pipeline, and comma
+ * separated for the accountant's spreadsheet. Every command builds a plain
+ * object or a list of them and hands it here, so no command has to know which
+ * the caller asked for and no command formats a number twice.
  */
+
+import { toCsv } from '../reports/csv.js';
 
 export type Cell = string | number | boolean | null | undefined;
 
@@ -41,10 +44,12 @@ export function columns(...spec: readonly string[]): Column[] {
   });
 }
 
-export type OutputFormat = 'table' | 'json' | 'plain';
+export type OutputFormat = 'table' | 'json' | 'plain' | 'csv';
+
+export const OUTPUT_FORMATS: readonly OutputFormat[] = ['table', 'json', 'plain', 'csv'];
 
 export function isOutputFormat(value: string): value is OutputFormat {
-  return value === 'table' || value === 'json' || value === 'plain';
+  return (OUTPUT_FORMATS as readonly string[]).includes(value);
 }
 
 export function renderCell(value: Cell): string {
@@ -113,6 +118,24 @@ export function renderPlain(rows: readonly Row[], columns?: readonly Column[]): 
     .join('\n');
 }
 
+/**
+ * Comma separated, with the header taken from the column list so a caller that
+ * named its columns gets them in that order and nothing it did not ask for.
+ */
+export function renderCsv(rows: readonly Row[], columns?: readonly Column[]): string {
+  const resolved = columnsFor(rows, columns);
+  return toCsv(
+    rows.map((row) => {
+      const out: Record<string, Cell> = {};
+      for (const column of resolved) {
+        out[column.label ?? column.key] = row[column.key];
+      }
+      return out;
+    }),
+    { columns: resolved.map((column) => column.label ?? column.key) },
+  );
+}
+
 export function renderJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
@@ -128,6 +151,11 @@ export function render(rows: readonly Row[], options: RenderOptions): string {
   if (options.format === 'json') {
     return renderJson(rows);
   }
+  if (options.format === 'csv') {
+    // A header with no rows under it is still the answer: the spreadsheet
+    // wants the shape even on a quiet day.
+    return renderCsv(rows, options.columns);
+  }
   if (rows.length === 0) {
     return options.empty ?? 'nothing to show';
   }
@@ -140,6 +168,9 @@ export function render(rows: readonly Row[], options: RenderOptions): string {
 export function renderRecord(row: Row, options: { format: OutputFormat }): string {
   if (options.format === 'json') {
     return renderJson(row);
+  }
+  if (options.format === 'csv') {
+    return renderCsv([row]);
   }
   const keys = Object.keys(row);
   const width = keys.reduce((widest, key) => Math.max(widest, key.length), 0);
