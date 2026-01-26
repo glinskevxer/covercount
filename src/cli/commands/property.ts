@@ -13,6 +13,7 @@ import {
   placeHold,
   releaseHold,
 } from '../../property/holds.js';
+import { listTurnStandards, setTurnStandard, tightTurns, turnPlan } from '../../property/turns.js';
 import { catalogCode } from '../../core/ids.js';
 import { formatRate, ratePercent } from '../../core/rate.js';
 import { formatTimeOfDay, parseTimeOfDay } from '../../core/clock.js';
@@ -543,6 +544,101 @@ export function registerHoldCommands(program: Command, makeContext: () => CliCon
               format: context.format,
               empty: 'nothing has lapsed',
               columns: columns('id>', 'room', 'booking', 'date', 'until'),
+            },
+          ),
+        );
+      });
+    });
+}
+
+export function registerTurnCommands(program: Command, makeContext: () => CliContext): void {
+  const turn = program.command('turn').description('turning a room between two setups');
+
+  turn
+    .command('standard')
+    .description('publish how long a turn takes and how many hands')
+    .requiredOption('--from <style>', 'the setup it comes out of')
+    .requiredOption('--to <style>', 'the setup it goes into')
+    .requiredOption('--minutes <minutes>', 'how long it takes')
+    .requiredOption('--heads <heads>', 'how many housemen it takes')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const standard = setTurnStandard(
+          db,
+          context.requireProperty(),
+          options.from ?? '',
+          options.to ?? '',
+          wholeNumber('minutes', options.minutes ?? ''),
+          wholeNumber('heads', options.heads ?? ''),
+        );
+        context.write(
+          renderRecord(
+            {
+              from: standard.fromStyle,
+              to: standard.toStyle,
+              minutes: standard.minutes,
+              heads: standard.heads,
+            },
+            { format: context.format },
+          ),
+        );
+      });
+    });
+
+  turn
+    .command('table')
+    .description('every turn the house has published')
+    .action(() => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        context.write(
+          render(
+            listTurnStandards(db, context.requireProperty()).map((standard) => ({
+              from: standard.fromStyle,
+              to: standard.toStyle,
+              minutes: standard.minutes,
+              heads: standard.heads,
+            })),
+            {
+              format: context.format,
+              empty: 'nothing is published, so each room stands on its own numbers',
+              columns: columns('from', 'to', 'minutes>', 'heads>'),
+            },
+          ),
+        );
+      });
+    });
+
+  turn
+    .command('day')
+    .description('every back to back pair on a date')
+    .requiredOption('--date <date>', 'the date')
+    .option('--tight', 'only the ones that do not fit')
+    .action((options: Record<string, string | boolean>) => {
+      const context = makeContext();
+      withOpenStore(context, (db) => {
+        const date = dateArg(String(options.date ?? ''));
+        const property = context.requireProperty();
+        const turns =
+          options.tight === true
+            ? tightTurns(db, property, date)
+            : turnPlan(db, property, date).turns;
+        context.write(
+          render(
+            turns.map((each) => ({
+              room: each.spaceCode,
+              out: each.fromName,
+              in: each.toName,
+              gap: each.gapMinutes,
+              needs: each.standard.minutes,
+              short: each.shortMinutes,
+              heads: each.headsNeeded,
+            })),
+            {
+              format: context.format,
+              empty: 'no room turns that day',
+              columns: columns('room', 'out', 'in', 'gap>', 'needs>', 'short>', 'heads>'),
             },
           ),
         );

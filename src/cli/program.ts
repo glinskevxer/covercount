@@ -20,6 +20,7 @@ import {
   registerCalendarCommands,
   registerCombinationCommands,
   registerHoldCommands,
+  registerTurnCommands,
   registerPropertyCommands,
   registerSpaceCommands,
 } from './commands/property.js';
@@ -108,6 +109,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerSpaceCommands(program, makeContext);
   registerCombinationCommands(program, makeContext);
   registerHoldCommands(program, makeContext);
+  registerTurnCommands(program, makeContext);
   registerCalendarCommands(program, makeContext);
   registerAccountCommands(program, makeContext);
   registerBookingCommands(program, makeContext);

@@ -229,6 +229,34 @@ holds whose own date has run out
 | --- | --- |
 | `--on <date>` | the date to sweep at (required) |
 
+## `turn`
+
+turning a room between two setups
+
+### `turn standard`
+
+publish how long a turn takes and how many hands
+
+| option | what it is |
+| --- | --- |
+| `--from <style>` | the setup it comes out of (required) |
+| `--to <style>` | the setup it goes into (required) |
+| `--minutes <minutes>` | how long it takes (required) |
+| `--heads <heads>` | how many housemen it takes (required) |
+
+### `turn table`
+
+every turn the house has published
+
+### `turn day`
+
+every back to back pair on a date
+
+| option | what it is |
+| --- | --- |
+| `--date <date>` | the date (required) |
+| `--tight` | only the ones that do not fit |
+
 ## `calendar`
 
 the office and kitchen calendars
