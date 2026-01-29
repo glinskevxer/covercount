@@ -25,7 +25,7 @@ import {
 } from '../../covers/special.js';
 import { columns, render, renderRecord } from '../output.js';
 import { entityArg, wholeNumber } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 export function registerCoverCommands(program: Command, makeContext: () => CliContext): void {
   const covers = program.command('covers').description('the guarantee and what was served');
@@ -37,9 +37,8 @@ export function registerCoverCommands(program: Command, makeContext: () => CliCo
     .requiredOption('--contract <date>', 'the date the contract was signed')
     .option('--package <code>', 'the menu package sold')
     .option('--book <code>', 'the price book it was quoted from')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const opened = openCovers(db, entityArg('functionSlot', options.function ?? ''), {
           contractDate: options.contract ?? '',
           ...(options.package === undefined ? {} : { packageCode: options.package }),
@@ -57,8 +56,8 @@ export function registerCoverCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   covers
     .command('guarantee')
@@ -67,9 +66,8 @@ export function registerCoverCommands(program: Command, makeContext: () => CliCo
     .requiredOption('--covers <covers>', 'the number guaranteed')
     .option('--note <note>', 'why, for the record', '')
     .option('--override-cutoff', 'lower the count after the deadline, on the record')
-    .action((options: Record<string, string | boolean>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
         const updated = setGuarantee(
           db,
           entityArg('functionSlot', String(options.function ?? '')),
@@ -92,17 +90,16 @@ export function registerCoverCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   covers
     .command('served')
     .description('record the count taken at the pass')
     .requiredOption('--function <id>', 'the function')
     .requiredOption('--covers <covers>', 'how many went out')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const updated = recordServed(
           db,
           entityArg('functionSlot', options.function ?? ''),
@@ -122,8 +119,8 @@ export function registerCoverCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerCoverReadCommands(program: Command, makeContext: () => CliContext): void {
@@ -133,65 +130,55 @@ export function registerCoverReadCommands(program: Command, makeContext: () => C
     .command('show')
     .description('the guarantee, the plate count and what the room is set for')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const id = entityArg('functionSlot', options.function ?? '');
-          const covers = requireCovers(db, id);
-          const breakdown = coverBreakdown(db, id);
-          context.write(
-            renderRecord(
-              {
-                function: id,
-                guaranteeDue: formatZoned(covers.guaranteeDue),
-                guaranteed: breakdown.guaranteed,
-                special: breakdown.special,
-                standard: breakdown.standard,
-                setFor: breakdown.setFor,
-                served: covers.servedCovers ?? '',
-                allergens: allergensInTheRoom(db, id).join(', '),
-              },
-              { format: context.format },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const id = entityArg('functionSlot', options.function ?? '');
+        const covers = requireCovers(db, id);
+        const breakdown = coverBreakdown(db, id);
+        context.write(
+          renderRecord(
+            {
+              function: id,
+              guaranteeDue: formatZoned(covers.guaranteeDue),
+              guaranteed: breakdown.guaranteed,
+              special: breakdown.special,
+              standard: breakdown.standard,
+              setFor: breakdown.setFor,
+              served: covers.servedCovers ?? '',
+              allergens: allergensInTheRoom(db, id).join(', '),
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
 
   count
     .command('movements')
     .description('every time the guarantee moved')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listMovements(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
-                seq: row.seq,
-                at: row.occurredAt,
-                actor: row.actor,
-                from: row.fromCovers ?? '',
-                to: row.toCovers,
-                afterCutoff: row.afterCutoff,
-                note: row.note,
-              })),
-              {
-                format: context.format,
-                empty: 'the guarantee has never been set',
-                columns: columns('seq>', 'at', 'actor', 'from>', 'to>', 'afterCutoff', 'note'),
-              },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listMovements(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
+              seq: row.seq,
+              at: row.occurredAt,
+              actor: row.actor,
+              from: row.fromCovers ?? '',
+              to: row.toCovers,
+              afterCutoff: row.afterCutoff,
+              note: row.note,
+            })),
+            {
+              format: context.format,
+              empty: 'the guarantee has never been set',
+              columns: columns('seq>', 'at', 'actor', 'from>', 'to>', 'afterCutoff', 'note'),
+            },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerSpecialMealCommands(program: Command, makeContext: () => CliContext): void {
@@ -207,9 +194,8 @@ export function registerSpecialMealCommands(program: Command, makeContext: () =>
     .option('--avoid <allergens>', 'comma separated allergens to keep away from')
     .option('--substitute <code>', 'the dish they will be served')
     .option('--note <note>', 'anything else', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const meal = addSpecialMeal(
           db,
           entityArg('functionSlot', options.function ?? ''),
@@ -238,47 +224,39 @@ export function registerSpecialMealCommands(program: Command, makeContext: () =>
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   special
     .command('list')
     .description('the special meals on a function')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listSpecialMeals(db, entityArg('functionSlot', options.function ?? '')).map(
-                (row) => ({
-                  id: row.id,
-                  guest: row.guestName,
-                  covers: row.covers,
-                  diet: row.diet ?? '',
-                  avoids: row.allergens.join(', '),
-                  substitute: row.substituteItemCode ?? '',
-                  note: row.note,
-                }),
-              ),
-              { format: context.format, empty: 'no special meals on that function' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listSpecialMeals(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
+              id: row.id,
+              guest: row.guestName,
+              covers: row.covers,
+              diet: row.diet ?? '',
+              avoids: row.allergens.join(', '),
+              substitute: row.substituteItemCode ?? '',
+              note: row.note,
+            })),
+            { format: context.format, empty: 'no special meals on that function' },
+          ),
+        );
+      }),
+    );
 
   special
     .command('substitute')
     .description('decide what a special meal will actually be')
     .requiredOption('--id <id>', 'the special meal')
     .requiredOption('--item <code>', 'the dish')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const meal = assignSubstitute(db, wholeNumber('id', options.id ?? ''), options.item ?? '');
         context.write(
           renderRecord(
@@ -286,18 +264,17 @@ export function registerSpecialMealCommands(program: Command, makeContext: () =>
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   special
     .command('remove')
     .description('take a special meal off')
     .requiredOption('--id <id>', 'the special meal')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const removed = removeSpecialMeal(db, wholeNumber('id', options.id ?? ''));
         context.write(renderRecord({ id: options.id ?? '', removed }, { format: context.format }));
-      });
-    });
+      }),
+    );
 }

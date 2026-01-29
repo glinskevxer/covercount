@@ -20,7 +20,7 @@ import { isSetupStyle } from '../../property/types.js';
 import { invalidInput } from '../../core/errors.js';
 import { columns, render, renderRecord } from '../output.js';
 import { entityArg, moneyArg, wholeNumber } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 function setupStyle(value: string) {
   const style = value.trim().toUpperCase();
@@ -53,9 +53,8 @@ export function registerEquipmentCommands(program: Command, makeContext: () => C
     .requiredOption('--kind <kind>', 'table, seating, linen, china, glass, buffet, av or staging')
     .option('--owned <count>', 'how many the property owns', '0')
     .option('--rental <amount>', 'what one costs to hire in', '0.00')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const item = createEquipment(
           db,
           context.requireProperty(),
@@ -80,33 +79,28 @@ export function registerEquipmentCommands(program: Command, makeContext: () => C
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   kit
     .command('list')
     .description('everything in the cupboard')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listEquipment(db, context.requireProperty()).map((row) => ({
-                code: row.code,
-                name: row.name,
-                kind: row.kind,
-                owned: row.owned,
-                rental: formatMoney(row.rental),
-              })),
-              { format: context.format, empty: 'the cupboard is empty' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        context.write(
+          render(
+            listEquipment(db, context.requireProperty()).map((row) => ({
+              code: row.code,
+              name: row.name,
+              kind: row.kind,
+              owned: row.owned,
+              rental: formatMoney(row.rental),
+            })),
+            { format: context.format, empty: 'the cupboard is empty' },
+          ),
+        );
+      }),
+    );
 
   kit
     .command('rule')
@@ -116,9 +110,8 @@ export function registerEquipmentCommands(program: Command, makeContext: () => C
     .option('--per-cover <count>', 'how many a cover needs', '0')
     .option('--per-table <count>', 'how many a table needs', '0')
     .option('--fixed <count>', 'how many whatever the size', '0')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const rule = setRequirement(db, context.requireProperty(), {
           setupStyle: options.style ?? '',
           equipmentCode: options.item ?? '',
@@ -138,35 +131,30 @@ export function registerEquipmentCommands(program: Command, makeContext: () => C
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   kit
     .command('rules')
     .description('what one setup style pulls')
     .requiredOption('--style <style>', 'the setup style')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listRequirements(db, context.requireProperty(), setupStyle(options.style ?? '')).map(
-                (row) => ({
-                  item: row.equipmentCode,
-                  perCover: row.perCover,
-                  perTable: row.perTable,
-                  fixed: row.fixed,
-                }),
-              ),
-              { format: context.format, empty: 'that style pulls nothing' },
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listRequirements(db, context.requireProperty(), setupStyle(options.style ?? '')).map(
+              (row) => ({
+                item: row.equipmentCode,
+                perCover: row.perCover,
+                perTable: row.perTable,
+                fixed: row.fixed,
+              }),
             ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+            { format: context.format, empty: 'that style pulls nothing' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerPullCommands(program: Command, makeContext: () => CliContext): void {
@@ -178,9 +166,8 @@ export function registerPullCommands(program: Command, makeContext: () => CliCon
     .requiredOption('--function <id>', 'the function')
     .option('--covers <count>', 'work it out against this count instead')
     .option('--save', 'write it against the function')
-    .action((options: Record<string, string | boolean>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
         const functionId = entityArg('functionSlot', String(options.function ?? ''));
         const slot = requireFunction(db, functionId);
         const covers =
@@ -211,8 +198,8 @@ export function registerPullCommands(program: Command, makeContext: () => CliCon
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   pull
     .command('tables')

@@ -95,3 +95,36 @@ export function withOpenStore<T>(
     closeDatabase(db);
   }
 }
+
+/**
+ * The ceremony every command was writing out for itself.
+ *
+ * Build the context, open the store, hand back the handle, close it whatever
+ * happens. That was four lines wrapped around the one line that does the work,
+ * in a hundred odd places, and the four lines were identical in every one of
+ * them. Worse, they were identical by hand: two of them had drifted into
+ * opening the store before validating an argument, so a bad option left a file
+ * handle open on the way out.
+ */
+export function onStore<O>(
+  makeContext: () => CliContext,
+  body: (db: Database, context: CliContext, options: O) => void,
+): (options: O) => void {
+  return (options: O) => {
+    const context = makeContext();
+    withOpenStore(context, (db) => {
+      body(db, context, options);
+    });
+  };
+}
+
+/** The same, for a command that only reads. */
+export function onReadStore<O>(
+  makeContext: () => CliContext,
+  body: (db: Database, context: CliContext, options: O) => void,
+): (options: O) => void {
+  return (options: O) => {
+    const context = makeContext();
+    withOpenStore(context, (db) => body(db, context, options), { readOnly: true });
+  };
+}

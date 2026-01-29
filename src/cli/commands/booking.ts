@@ -37,7 +37,7 @@ import { formatRate } from '../../core/rate.js';
 import { formatMoney } from '../../core/money.js';
 import { columns, render, renderRecord } from '../output.js';
 import { dateArg, entityArg, percentToPpm, wholeNumber } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 export function registerAccountCommands(program: Command, makeContext: () => CliContext): void {
   const account = program.command('account').description('the accounts we book from');
@@ -51,9 +51,8 @@ export function registerAccountCommands(program: Command, makeContext: () => Cli
     .option('--email <email>', 'where the invoice goes', '')
     .option('--credit <status>', 'approved, prepay or hold', 'APPROVED')
     .option('--exempt <id>', 'tax exemption certificate number', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const created = createAccount(
           db,
           context.requireProperty(),
@@ -80,42 +79,36 @@ export function registerAccountCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   account
     .command('list')
     .description('every account on file')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listAccounts(db, context.requireProperty()).map((row) => ({
-                code: row.code,
-                name: row.name,
-                kind: row.kind,
-                credit: row.creditStatus,
-                exempt: row.taxExemptId.length > 0,
-              })),
-              { format: context.format, empty: 'no accounts are on file' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        context.write(
+          render(
+            listAccounts(db, context.requireProperty()).map((row) => ({
+              code: row.code,
+              name: row.name,
+              kind: row.kind,
+              credit: row.creditStatus,
+              exempt: row.taxExemptId.length > 0,
+            })),
+            { format: context.format, empty: 'no accounts are on file' },
+          ),
+        );
+      }),
+    );
 
   account
     .command('credit')
     .description('move an account credit status')
     .requiredOption('--code <code>', 'the account')
     .requiredOption('--status <status>', 'approved, prepay or hold')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const updated = setCreditStatus(
           db,
           context.requireProperty(),
@@ -128,39 +121,34 @@ export function registerAccountCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   account
     .command('show')
     .description('one account and the bookings on it')
     .requiredOption('--code <code>', 'the account')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const propertyCode = context.requireProperty();
-          const code = catalogCode(options.code ?? '');
-          const found = requireAccount(db, propertyCode, code);
-          context.write(
-            renderRecord(
-              {
-                code: found.code,
-                name: found.name,
-                kind: found.kind,
-                email: found.billingEmail,
-                credit: found.creditStatus,
-                exempt: found.taxExemptId,
-                bookings: listBookings(db, propertyCode, { accountCode: code }).length,
-              },
-              { format: context.format },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const propertyCode = context.requireProperty();
+        const code = catalogCode(options.code ?? '');
+        const found = requireAccount(db, propertyCode, code);
+        context.write(
+          renderRecord(
+            {
+              code: found.code,
+              name: found.name,
+              kind: found.kind,
+              email: found.billingEmail,
+              credit: found.creditStatus,
+              exempt: found.taxExemptId,
+              bookings: listBookings(db, propertyCode, { accountCode: code }).length,
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerBookingCommands(program: Command, makeContext: () => CliContext): void {
@@ -174,9 +162,8 @@ export function registerBookingCommands(program: Command, makeContext: () => Cli
     .requiredOption('--departure <date>', 'last day of the business')
     .option('--account <code>', 'the account it belongs to')
     .option('--manager <name>', 'the sales manager on it', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const created = createBooking(
           db,
           context.requireProperty(),
@@ -203,8 +190,8 @@ export function registerBookingCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   booking
     .command('list')
@@ -213,67 +200,57 @@ export function registerBookingCommands(program: Command, makeContext: () => Cli
     .option('--account <code>', 'only this account')
     .option('--from <date>', 'business overlapping on or after this date')
     .option('--to <date>', 'business overlapping on or before this date')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const rows = listBookings(db, context.requireProperty(), {
-            ...(options.status === undefined ? {} : { status: options.status }),
-            ...(options.account === undefined ? {} : { accountCode: options.account }),
-            ...(options.from === undefined ? {} : { from: options.from }),
-            ...(options.to === undefined ? {} : { to: options.to }),
-          });
-          context.write(
-            render(
-              rows.map((row) => ({
-                id: row.id,
-                postAs: row.postAs,
-                status: row.status,
-                account: row.accountCode ?? '',
-                arrival: row.arrivalDate,
-                departure: row.departureDate,
-              })),
-              { format: context.format, empty: 'no bookings match' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const rows = listBookings(db, context.requireProperty(), {
+          ...(options.status === undefined ? {} : { status: options.status }),
+          ...(options.account === undefined ? {} : { accountCode: options.account }),
+          ...(options.from === undefined ? {} : { from: options.from }),
+          ...(options.to === undefined ? {} : { to: options.to }),
+        });
+        context.write(
+          render(
+            rows.map((row) => ({
+              id: row.id,
+              postAs: row.postAs,
+              status: row.status,
+              account: row.accountCode ?? '',
+              arrival: row.arrivalDate,
+              departure: row.departureDate,
+            })),
+            { format: context.format, empty: 'no bookings match' },
+          ),
+        );
+      }),
+    );
 
   booking
     .command('show')
     .description('one booking with its functions')
     .requiredOption('--id <id>', 'the booking')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const id = entityArg('booking', options.id ?? '');
-          const found = requireBooking(db, id);
-          const functions = listFunctions(db, id);
-          context.write(
-            renderRecord(
-              {
-                id: found.id,
-                postAs: found.postAs,
-                status: found.status,
-                account: found.accountCode ?? '',
-                arrival: found.arrivalDate,
-                departure: found.departureDate,
-                manager: found.salesManager,
-                functions: functions.length,
-                cancelReason: found.cancelReason ?? '',
-              },
-              { format: context.format },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const id = entityArg('booking', options.id ?? '');
+        const found = requireBooking(db, id);
+        const functions = listFunctions(db, id);
+        context.write(
+          renderRecord(
+            {
+              id: found.id,
+              postAs: found.postAs,
+              status: found.status,
+              account: found.accountCode ?? '',
+              arrival: found.arrivalDate,
+              departure: found.departureDate,
+              manager: found.salesManager,
+              functions: functions.length,
+              cancelReason: found.cancelReason ?? '',
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerBookingChangeCommands(
@@ -291,9 +268,8 @@ export function registerBookingChangeCommands(
     .option('--arrival <date>', 'a new arrival date')
     .option('--departure <date>', 'a new departure date')
     .option('--manager <name>', 'a new sales manager')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const account =
           options.account === undefined
             ? {}
@@ -323,8 +299,8 @@ export function registerBookingChangeCommands(
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   deal
     .command('advance')
@@ -333,9 +309,8 @@ export function registerBookingChangeCommands(
     .requiredOption('--to <status>', 'tentative, definite, cancelled or closed')
     .option('--reason <reason>', 'why, required to cancel')
     .option('--today <date>', 'the date the office believes it is, required to close')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const id = entityArg('booking', options.id ?? '');
         const to = (options.to ?? '').trim().toUpperCase();
         const now = context.now();
@@ -365,38 +340,33 @@ export function registerBookingChangeCommands(
         context.write(
           renderRecord({ id: updated.id, status: updated.status }, { format: context.format }),
         );
-      });
-    });
+      }),
+    );
 
   deal
     .command('history')
     .description('everything that happened to a booking')
     .requiredOption('--id <id>', 'the booking')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listEvents(db, entityArg('booking', options.id ?? '')).map((row) => ({
-                seq: row.seq,
-                at: row.occurredAt,
-                actor: row.actor,
-                kind: row.kind,
-                detail: row.detail,
-              })),
-              {
-                format: context.format,
-                empty: 'nothing has happened to that booking',
-                columns: columns('seq>', 'at', 'actor', 'kind', 'detail'),
-              },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listEvents(db, entityArg('booking', options.id ?? '')).map((row) => ({
+              seq: row.seq,
+              at: row.occurredAt,
+              actor: row.actor,
+              kind: row.kind,
+              detail: row.detail,
+            })),
+            {
+              format: context.format,
+              empty: 'nothing has happened to that booking',
+              columns: columns('seq>', 'at', 'actor', 'kind', 'detail'),
+            },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerDamagesCommands(program: Command, makeContext: () => CliContext): void {
@@ -410,9 +380,8 @@ export function registerDamagesCommands(program: Command, makeContext: () => Cli
     .requiredOption('--days <days>', 'days before the function the band starts at')
     .requiredOption('--percent <percent>', 'how much of the contract is owed')
     .option('--note <text>', 'the clause it comes from')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const band = setCancellationBand(
           db,
           context.requireProperty(),
@@ -426,15 +395,14 @@ export function registerDamagesCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   damages
     .command('scale')
     .description('the whole published scale')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context) => {
         context.write(
           render(
             cancellationBands(db, context.requireProperty()).map((band) => ({
@@ -449,33 +417,31 @@ export function registerDamagesCommands(program: Command, makeContext: () => Cli
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   damages
     .command('drop')
     .description('take one band off the scale')
     .requiredOption('--days <days>', 'the band to remove')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const removed = removeCancellationBand(
           db,
           context.requireProperty(),
           wholeNumber('days', options.days ?? ''),
         );
         context.write(renderRecord({ removed }, { format: context.format }));
-      });
-    });
+      }),
+    );
 
   damages
     .command('quote')
     .description('what this booking owes if it walks on a date')
     .requiredOption('--booking <id>', 'the booking')
     .requiredOption('--on <date>', 'the date notice is given')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const assessment = assessDamages(
           db,
           entityArg('booking', options.booking ?? ''),
@@ -498,6 +464,6 @@ export function registerDamagesCommands(program: Command, makeContext: () => Cli
             },
           ),
         );
-      });
-    });
+      }),
+    );
 }

@@ -35,7 +35,7 @@ import {
 import { accountStatement, setCreditTerms } from '../../billing/statement.js';
 import { columns, render, renderRecord } from '../output.js';
 import { dateArg, entityArg, moneyArg, percentToPpm, wholeNumber } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 export function registerTaxCommands(program: Command, makeContext: () => CliContext): void {
   const tax = program.command('tax').description('tax profiles and the rates in them');
@@ -48,9 +48,8 @@ export function registerTaxCommands(program: Command, makeContext: () => CliCont
     .option('--service <percent>', 'service charge percentage', '0')
     .option('--gratuity <percent>', 'gratuity percentage', '0')
     .option('--service-untaxed', 'the service charge is not itself taxable')
-    .action((options: Record<string, string | boolean>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
         const created = createTaxProfile(
           db,
           context.requireProperty(),
@@ -75,8 +74,8 @@ export function registerTaxCommands(program: Command, makeContext: () => CliCont
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   tax
     .command('rate')
@@ -84,9 +83,8 @@ export function registerTaxCommands(program: Command, makeContext: () => CliCont
     .requiredOption('--profile <code>', 'the profile')
     .requiredOption('--category <category>', 'food, beverage, rental, av, labor, service or fee')
     .requiredOption('--percent <percent>', 'the rate')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const propertyCode = context.requireProperty();
         const profile = catalogCode(options.profile ?? '');
         setTaxRate(
@@ -105,33 +103,28 @@ export function registerTaxCommands(program: Command, makeContext: () => CliCont
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   tax
     .command('list')
     .description('every tax profile on file')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listTaxProfiles(db, context.requireProperty()).map((row) => ({
-                code: row.code,
-                name: row.name,
-                service: formatRate(row.serviceCharge),
-                gratuity: formatRate(row.gratuity),
-                serviceTaxable: row.serviceChargeTaxable,
-              })),
-              { format: context.format, empty: 'no tax profiles are on file' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        context.write(
+          render(
+            listTaxProfiles(db, context.requireProperty()).map((row) => ({
+              code: row.code,
+              name: row.name,
+              service: formatRate(row.serviceCharge),
+              gratuity: formatRate(row.gratuity),
+              serviceTaxable: row.serviceChargeTaxable,
+            })),
+            { format: context.format, empty: 'no tax profiles are on file' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerChargeCommands(program: Command, makeContext: () => CliContext): void {
@@ -148,9 +141,8 @@ export function registerChargeCommands(program: Command, makeContext: () => CliC
     .option('--item <code>', 'the catalog item behind it')
     .option('--no-tax', 'the line is not taxable')
     .option('--service', 'the service charge falls on this line')
-    .action((options: Record<string, string | boolean>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
         const line = addCharge(db, entityArg('functionSlot', String(options.function ?? '')), {
           category: String(options.category ?? ''),
           description: String(options.description ?? ''),
@@ -175,16 +167,15 @@ export function registerChargeCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   charge
     .command('package')
     .description('draw the package line off the guarantee and the price book')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const drawn = drawPackageCharges(db, entityArg('functionSlot', options.function ?? ''));
         context.write(
           render(
@@ -198,8 +189,8 @@ export function registerChargeCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   charge
     .command('upcharge')
@@ -207,9 +198,8 @@ export function registerChargeCommands(program: Command, makeContext: () => CliC
     .requiredOption('--function <id>', 'the function')
     .requiredOption('--item <code>', 'the upcharge item')
     .requiredOption('--covers <count>', 'how many took it')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const line = addUpcharge(
           db,
           entityArg('functionSlot', options.function ?? ''),
@@ -228,48 +218,42 @@ export function registerChargeCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   charge
     .command('list')
     .description('every line on a function')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listCharges(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
-                id: row.id,
-                category: row.category,
-                description: row.description,
-                quantity: row.quantity,
-                unit: formatMoney(row.unit),
-                total: formatMoney(lineTotal(row)),
-                source: row.source,
-              })),
-              { format: context.format, empty: 'nothing is on that function yet' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listCharges(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
+              id: row.id,
+              category: row.category,
+              description: row.description,
+              quantity: row.quantity,
+              unit: formatMoney(row.unit),
+              total: formatMoney(lineTotal(row)),
+              source: row.source,
+            })),
+            { format: context.format, empty: 'nothing is on that function yet' },
+          ),
+        );
+      }),
+    );
 
   charge
     .command('remove')
     .description('take a line off')
     .requiredOption('--id <id>', 'the line')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const removed = removeCharge(db, wholeNumber('id', options.id ?? ''));
         context.write(renderRecord({ id: options.id ?? '', removed }, { format: context.format }));
-      });
-    });
+      }),
+    );
 }
 
 export function registerInvoiceCommands(program: Command, makeContext: () => CliContext): void {
@@ -281,9 +265,8 @@ export function registerInvoiceCommands(program: Command, makeContext: () => Cli
     .requiredOption('--booking <id>', 'the booking')
     .requiredOption('--profile <code>', 'the tax profile to bill under')
     .option('--note <note>', 'anything the client should see', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const raised = raiseInvoice(
           db,
           context.requireProperty(),
@@ -305,69 +288,59 @@ export function registerInvoiceCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   invoice
     .command('show')
     .description('the totals on an invoice')
     .requiredOption('--id <id>', 'the invoice')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const id = parseEntityId('invoice', options.id ?? '');
-          const found = requireInvoice(db, id);
-          const totals = invoiceTotals(db, id);
-          context.write(
-            renderRecord(
-              {
-                id: found.id,
-                booking: found.bookingId,
-                profile: found.taxProfileCode,
-                status: found.status,
-                net: formatMoney(totals.net),
-                serviceCharge: formatMoney(totals.serviceCharge),
-                gratuity: formatMoney(totals.gratuity),
-                tax: formatMoney(totals.tax),
-                gross: formatMoney(totals.gross),
-                paid: formatMoney(totals.paid),
-                balance: formatMoney(totals.balance),
-              },
-              { format: context.format },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const id = parseEntityId('invoice', options.id ?? '');
+        const found = requireInvoice(db, id);
+        const totals = invoiceTotals(db, id);
+        context.write(
+          renderRecord(
+            {
+              id: found.id,
+              booking: found.bookingId,
+              profile: found.taxProfileCode,
+              status: found.status,
+              net: formatMoney(totals.net),
+              serviceCharge: formatMoney(totals.serviceCharge),
+              gratuity: formatMoney(totals.gratuity),
+              tax: formatMoney(totals.tax),
+              gross: formatMoney(totals.gross),
+              paid: formatMoney(totals.paid),
+              balance: formatMoney(totals.balance),
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
 
   invoice
     .command('breakdown')
     .description('the totals per charge category')
     .requiredOption('--id <id>', 'the invoice')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const totals = invoiceTotals(db, parseEntityId('invoice', options.id ?? ''));
-          context.write(
-            render(
-              totals.lines.map((row) => ({
-                category: row.category,
-                net: formatMoney(row.net),
-                serviceCharge: formatMoney(row.serviceCharge),
-                tax: formatMoney(row.tax),
-              })),
-              { format: context.format, empty: 'nothing is on that invoice' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const totals = invoiceTotals(db, parseEntityId('invoice', options.id ?? ''));
+        context.write(
+          render(
+            totals.lines.map((row) => ({
+              category: row.category,
+              net: formatMoney(row.net),
+              serviceCharge: formatMoney(row.serviceCharge),
+              tax: formatMoney(row.tax),
+            })),
+            { format: context.format, empty: 'nothing is on that invoice' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerPaymentCommands(program: Command, makeContext: () => CliContext): void {
@@ -380,9 +353,8 @@ export function registerPaymentCommands(program: Command, makeContext: () => Cli
     .requiredOption('--kind <kind>', 'deposit, payment, refund or write-off')
     .requiredOption('--amount <amount>', 'how much')
     .option('--reference <text>', 'the wire or cheque reference', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const payment = recordPayment(
           db,
           parseEntityId('invoice', options.id ?? ''),
@@ -404,43 +376,37 @@ export function registerPaymentCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   settle
     .command('payments')
     .description('everything that has landed against an invoice')
     .requiredOption('--id <id>', 'the invoice')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listPayments(db, parseEntityId('invoice', options.id ?? '')).map((row) => ({
-                seq: row.seq,
-                at: row.receivedAt,
-                kind: row.kind,
-                amount: formatMoney(row.amount),
-                reference: row.reference,
-              })),
-              { format: context.format, empty: 'nothing has been paid yet' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listPayments(db, parseEntityId('invoice', options.id ?? '')).map((row) => ({
+              seq: row.seq,
+              at: row.receivedAt,
+              kind: row.kind,
+              amount: formatMoney(row.amount),
+              reference: row.reference,
+            })),
+            { format: context.format, empty: 'nothing has been paid yet' },
+          ),
+        );
+      }),
+    );
 
   settle
     .command('advance')
     .description('issue, settle or void an invoice')
     .requiredOption('--id <id>', 'the invoice')
     .requiredOption('--to <status>', 'issued, paid or void')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const moved = advanceInvoice(
           db,
           parseEntityId('invoice', options.id ?? ''),
@@ -450,39 +416,34 @@ export function registerPaymentCommands(program: Command, makeContext: () => Cli
         context.write(
           renderRecord({ id: moved.id, status: moved.status }, { format: context.format }),
         );
-      });
-    });
+      }),
+    );
 
   settle
     .command('list')
     .description('invoices, filtered')
     .option('--booking <id>', 'only this booking')
     .option('--status <status>', 'only this status')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const rows = listInvoices(db, context.requireProperty(), {
-            ...(options.booking === undefined ? {} : { bookingId: options.booking }),
-            ...(options.status === undefined ? {} : { status: options.status }),
-          });
-          context.write(
-            render(
-              rows.map((row) => ({
-                id: row.id,
-                booking: row.bookingId,
-                profile: row.taxProfileCode,
-                status: row.status,
-                gross: formatMoney(invoiceTotals(db, row.id).gross),
-              })),
-              { format: context.format, empty: 'no invoices match' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const rows = listInvoices(db, context.requireProperty(), {
+          ...(options.booking === undefined ? {} : { bookingId: options.booking }),
+          ...(options.status === undefined ? {} : { status: options.status }),
+        });
+        context.write(
+          render(
+            rows.map((row) => ({
+              id: row.id,
+              booking: row.bookingId,
+              profile: row.taxProfileCode,
+              status: row.status,
+              gross: formatMoney(invoiceTotals(db, row.id).gross),
+            })),
+            { format: context.format, empty: 'no invoices match' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerMinimumCommands(program: Command, makeContext: () => CliContext): void {
@@ -497,9 +458,8 @@ export function registerMinimumCommands(program: Command, makeContext: () => Cli
     .requiredOption('--amount <amount>', 'the floor, as money')
     .option('--food-only', 'count food alone, leaving the bar out of it')
     .option('--note <text>', 'the contract clause it comes from')
-    .action((options: Record<string, string | boolean>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
         const record = setRevenueMinimum(
           db,
           entityArg('functionSlot', String(options.function ?? '')),
@@ -520,16 +480,15 @@ export function registerMinimumCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   minimum
     .command('show')
     .description('where the function stands against its minimum')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const id = entityArg('functionSlot', options.function ?? '');
         if (findRevenueMinimum(db, id) === undefined) {
           context.write('that function is not sold against a minimum');
@@ -548,16 +507,15 @@ export function registerMinimumCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   minimum
     .command('sweep')
     .description('put the shortfall on the bill, or take it back off')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const result = sweepMinimum(db, entityArg('functionSlot', options.function ?? ''));
         context.write(
           renderRecord(
@@ -570,16 +528,15 @@ export function registerMinimumCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   minimum
     .command('clear')
     .description('take the minimum off a function entirely')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const id = entityArg('functionSlot', options.function ?? '');
         const removed = clearRevenueMinimum(db, id);
         context.write(
@@ -588,8 +545,8 @@ export function registerMinimumCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerStatementCommands(program: Command, makeContext: () => CliContext): void {
@@ -603,9 +560,8 @@ export function registerStatementCommands(program: Command, makeContext: () => C
     .requiredOption('--account <code>', 'the account')
     .requiredOption('--net <days>', 'days from issue to due')
     .option('--limit <amount>', 'credit limit, nil for none', '0')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const terms = setCreditTerms(
           db,
           context.requireProperty(),
@@ -623,17 +579,16 @@ export function registerStatementCommands(program: Command, makeContext: () => C
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   statement
     .command('show')
     .description('the statement for one account')
     .requiredOption('--account <code>', 'the account')
     .requiredOption('--on <date>', 'the date to age it at')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const found = accountStatement(
           db,
           context.requireProperty(),
@@ -658,17 +613,16 @@ export function registerStatementCommands(program: Command, makeContext: () => C
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   statement
     .command('ageing')
     .description('the balance by age bucket')
     .requiredOption('--account <code>', 'the account')
     .requiredOption('--on <date>', 'the date to age it at')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const found = accountStatement(
           db,
           context.requireProperty(),
@@ -688,6 +642,6 @@ export function registerStatementCommands(program: Command, makeContext: () => C
             },
           ),
         );
-      });
-    });
+      }),
+    );
 }

@@ -31,7 +31,7 @@ import {
 import { invalidInput } from '../../core/errors.js';
 import { columns, render, renderRecord } from '../output.js';
 import { entityArg, moneyArg, serviceStyleArg, wholeNumber } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 function role(value: string) {
   const normalised = value.trim().toUpperCase();
@@ -56,9 +56,8 @@ export function registerStaffingCommands(program: Command, makeContext: () => Cl
     .option('--call <hours>', 'the shortest shift the property pays', '4')
     .option('--lead-in <minutes>', 'minutes before the function', '60')
     .option('--lead-out <minutes>', 'minutes after it', '30')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const rule = setStaffingRule(db, context.requireProperty(), {
           serviceStyle: options.style ?? '',
           role: options.role ?? '',
@@ -80,37 +79,32 @@ export function registerStaffingCommands(program: Command, makeContext: () => Cl
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   staffing
     .command('rules')
     .description('the ratios for one service style')
     .requiredOption('--style <style>', 'the service style')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listStaffingRules(
-                db,
-                context.requireProperty(),
-                serviceStyleArg(options.style ?? ''),
-              ).map((row) => ({
-                role: row.role,
-                per: row.coversPerHead,
-                minimum: row.minimumHeads,
-                call: row.minimumHours,
-              })),
-              { format: context.format, empty: 'that style carries no rules' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listStaffingRules(
+              db,
+              context.requireProperty(),
+              serviceStyleArg(options.style ?? ''),
+            ).map((row) => ({
+              role: row.role,
+              per: row.coversPerHead,
+              minimum: row.minimumHeads,
+              call: row.minimumHours,
+            })),
+            { format: context.format, empty: 'that style carries no rules' },
+          ),
+        );
+      }),
+    );
 
   staffing
     .command('rate')
@@ -118,9 +112,8 @@ export function registerStaffingCommands(program: Command, makeContext: () => Cl
     .requiredOption('--role <role>', 'the role')
     .requiredOption('--from <date>', 'the date it takes effect')
     .requiredOption('--hourly <amount>', 'the hourly rate')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const rate = setLabourRate(
           db,
           context.requireProperty(),
@@ -134,56 +127,46 @@ export function registerStaffingCommands(program: Command, makeContext: () => Cl
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   staffing
     .command('rates')
     .description('every rate a role has ever been paid')
     .requiredOption('--role <role>', 'the role')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              labourRateHistory(db, context.requireProperty(), role(options.role ?? '')).map(
-                (row) => ({ from: row.effectiveFrom, hourly: formatMoney(row.hourly) }),
-              ),
-              { format: context.format, empty: 'that role has never been priced' },
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            labourRateHistory(db, context.requireProperty(), role(options.role ?? '')).map(
+              (row) => ({ from: row.effectiveFrom, hourly: formatMoney(row.hourly) }),
             ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+            { format: context.format, empty: 'that role has never been priced' },
+          ),
+        );
+      }),
+    );
 
   staffing
     .command('heads')
     .description('what a cover count works out to, before anything is rostered')
     .requiredOption('--style <style>', 'the service style')
     .requiredOption('--covers <covers>', 'the covers')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              headCounts(
-                db,
-                context.requireProperty(),
-                serviceStyleArg(options.style ?? ''),
-                wholeNumber('covers', options.covers ?? ''),
-              ).map((row) => ({ role: row.role, heads: row.heads, per: row.rule.coversPerHead })),
-              { format: context.format, empty: 'that style carries no rules' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            headCounts(
+              db,
+              context.requireProperty(),
+              serviceStyleArg(options.style ?? ''),
+              wholeNumber('covers', options.covers ?? ''),
+            ).map((row) => ({ role: row.role, heads: row.heads, per: row.rule.coversPerHead })),
+            { format: context.format, empty: 'that style carries no rules' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerCrewCommands(program: Command, makeContext: () => CliContext): void {
@@ -194,9 +177,8 @@ export function registerCrewCommands(program: Command, makeContext: () => CliCon
     .description('roster the function off the covers the room is set for')
     .requiredOption('--function <id>', 'the function')
     .option('--covers <count>', 'work it out against this count instead')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const shifts = buildRoster(
           db,
           entityArg('functionSlot', options.function ?? ''),
@@ -221,8 +203,8 @@ export function registerCrewCommands(program: Command, makeContext: () => CliCon
             { format: context.format, empty: 'nobody to call in' },
           ),
         );
-      });
-    });
+      }),
+    );
 
   crew
     .command('add')
@@ -234,9 +216,8 @@ export function registerCrewCommands(program: Command, makeContext: () => CliCon
     .requiredOption('--to <minute>', 'the minute they finish')
     .option('--hourly <amount>', 'an hourly rate, if it is not the one on file')
     .option('--note <note>', 'why', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const shift = addShift(
           db,
           entityArg('functionSlot', options.function ?? ''),
@@ -263,58 +244,52 @@ export function registerCrewCommands(program: Command, makeContext: () => CliCon
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   crew
     .command('show')
     .description('who is called in, and what it comes to')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const functionId = entityArg('functionSlot', options.function ?? '');
-          const summary = rosterSummary(db, functionId);
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const functionId = entityArg('functionSlot', options.function ?? '');
+        const summary = rosterSummary(db, functionId);
+        context.write(
+          render(
+            listShifts(db, functionId).map((row) => ({
+              id: row.id,
+              role: row.role,
+              heads: row.heads,
+              from: row.startMinute,
+              to: row.endMinute,
+              cost: formatMoney(shiftCost(row)),
+            })),
+            { format: context.format, empty: 'nobody is called in' },
+          ),
+        );
+        if (summary.heads > 0 && context.format !== 'json') {
+          context.write('');
           context.write(
-            render(
-              listShifts(db, functionId).map((row) => ({
-                id: row.id,
-                role: row.role,
-                heads: row.heads,
-                from: row.startMinute,
-                to: row.endMinute,
-                cost: formatMoney(shiftCost(row)),
-              })),
-              { format: context.format, empty: 'nobody is called in' },
-            ),
+            `${summary.heads} heads, ${summary.headHours.toFixed(1)} head hours, ${formatMoney(summary.cost)}`,
           );
-          if (summary.heads > 0 && context.format !== 'json') {
-            context.write('');
-            context.write(
-              `${summary.heads} heads, ${summary.headHours.toFixed(1)} head hours, ${formatMoney(summary.cost)}`,
-            );
-          }
-          for (const unpriced of summary.unpriced) {
-            context.writeError(`${unpriced} carries no rate on the service date`);
-          }
-        },
-        { readOnly: true },
-      );
-    });
+        }
+        for (const unpriced of summary.unpriced) {
+          context.writeError(`${unpriced} carries no rate on the service date`);
+        }
+      }),
+    );
 
   crew
     .command('remove')
     .description('take a shift off')
     .requiredOption('--id <id>', 'the shift')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const removed = removeShift(db, entityArg('shift', options.id ?? ''));
         context.write(renderRecord({ id: options.id ?? '', removed }, { format: context.format }));
-      });
-    });
+      }),
+    );
 }
 
 export function registerDistributionCommands(
@@ -330,9 +305,8 @@ export function registerDistributionCommands(
     .description('publish the points a role earns in the split')
     .requiredOption('--role <role>', 'the role')
     .requiredOption('--points <points>', 'points, relative to the other roles')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const row = setDistributionPoints(
           db,
           context.requireProperty(),
@@ -342,15 +316,14 @@ export function registerDistributionCommands(
         context.write(
           renderRecord({ role: row.role, points: row.points }, { format: context.format }),
         );
-      });
-    });
+      }),
+    );
 
   pool
     .command('table')
     .description('the points every role earns')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context) => {
         context.write(
           render(
             listDistributionPoints(db, context.requireProperty()).map((row) => ({
@@ -364,16 +337,15 @@ export function registerDistributionCommands(
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   pool
     .command('split')
     .description('split the service charge on an invoice across the crew')
     .requiredOption('--invoice <id>', 'the invoice')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const result = distributeServiceCharge(
           db,
           entityArg('invoice', options.invoice ?? ''),
@@ -394,16 +366,15 @@ export function registerDistributionCommands(
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   pool
     .command('check')
     .description('whether a recorded split still matches the invoice')
     .requiredOption('--invoice <id>', 'the invoice')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const id = entityArg('invoice', options.invoice ?? '');
         if (findDistribution(db, id) === undefined) {
           context.write('that service charge has not been handed out yet');
@@ -422,6 +393,6 @@ export function registerDistributionCommands(
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 }

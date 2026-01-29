@@ -38,7 +38,7 @@ import {
 } from '../../property/combinations.js';
 import { columns, render, renderRecord } from '../output.js';
 import { blockMinute, codeArg, dateArg, entityArg, wholeNumber } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 export function registerPropertyCommands(program: Command, makeContext: () => CliContext): void {
   const property = program.command('property').description('the property and its rooms');
@@ -54,9 +54,8 @@ export function registerPropertyCommands(program: Command, makeContext: () => Cl
     .option('--guarantee-due <time>', 'time of day the count closes, HH:MM', '12:00')
     .option('--overset <percent>', 'how far above the guarantee the room is set', '5')
     .option('--overset-cap <covers>', 'most covers the overset will ever add', '25')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const created = createProperty(
           db,
           {
@@ -86,64 +85,54 @@ export function registerPropertyCommands(program: Command, makeContext: () => Cl
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   property
     .command('list')
     .description('every property in this store')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listProperties(db).map((row) => ({
-                code: row.code,
-                name: row.name,
-                zone: row.timeZone,
-                currency: row.currency,
-                lead: row.guaranteeLeadDays,
-                overset: ratePercent(row.oversetRate),
-              })),
-              { format: context.format, empty: 'no properties are on file' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        context.write(
+          render(
+            listProperties(db).map((row) => ({
+              code: row.code,
+              name: row.name,
+              zone: row.timeZone,
+              currency: row.currency,
+              lead: row.guaranteeLeadDays,
+              overset: ratePercent(row.oversetRate),
+            })),
+            { format: context.format, empty: 'no properties are on file' },
+          ),
+        );
+      }),
+    );
 
   property
     .command('show')
     .description('the settings a property books under')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const found = requireProperty(db, context.requireProperty());
-          context.write(
-            renderRecord(
-              {
-                code: found.code,
-                name: found.name,
-                zone: found.timeZone,
-                currency: found.currency,
-                guaranteeLead: found.guaranteeLeadDays,
-                guaranteeDue: formatTimeOfDay(found.guaranteeDueTime),
-                overset: formatRate(found.oversetRate),
-                oversetCap: found.oversetCap,
-                rooms: listSpaces(db, found.code).length,
-              },
-              { format: context.format },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        const found = requireProperty(db, context.requireProperty());
+        context.write(
+          renderRecord(
+            {
+              code: found.code,
+              name: found.name,
+              zone: found.timeZone,
+              currency: found.currency,
+              guaranteeLead: found.guaranteeLeadDays,
+              guaranteeDue: formatTimeOfDay(found.guaranteeDueTime),
+              overset: formatRate(found.oversetRate),
+              oversetCap: found.oversetCap,
+              rooms: listSpaces(db, found.code).length,
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerSpaceCommands(program: Command, makeContext: () => CliContext): void {
@@ -159,9 +148,8 @@ export function registerSpaceCommands(program: Command, makeContext: () => CliCo
     .option('--area <sqft>', 'floor area in square feet', '0')
     .option('--setup <minutes>', 'minutes the crew needs in front of a function', '60')
     .option('--teardown <minutes>', 'minutes the crew needs behind it', '30')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const created = addSpace(db, context.requireProperty(), {
           code: options.code ?? '',
           name: options.name ?? '',
@@ -185,48 +173,43 @@ export function registerSpaceCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   space
     .command('list')
     .description('every room, with what it seats')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const propertyCode = context.requireProperty();
-          context.write(
-            render(
-              listSpaces(db, propertyCode).map((row) => ({
-                code: row.code,
-                name: row.name,
-                floor: row.floor,
-                fire: row.fireCapacity,
-                combination: row.isCombination,
-                active: row.active,
-                styles: spaceCapacities(db, propertyCode, row.code).length,
-              })),
-              {
-                format: context.format,
-                empty: 'no rooms are on file',
-                columns: columns(
-                  'code',
-                  'name',
-                  'floor',
-                  'fire>',
-                  'combination',
-                  'active',
-                  'styles>',
-                ),
-              },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        const propertyCode = context.requireProperty();
+        context.write(
+          render(
+            listSpaces(db, propertyCode).map((row) => ({
+              code: row.code,
+              name: row.name,
+              floor: row.floor,
+              fire: row.fireCapacity,
+              combination: row.isCombination,
+              active: row.active,
+              styles: spaceCapacities(db, propertyCode, row.code).length,
+            })),
+            {
+              format: context.format,
+              empty: 'no rooms are on file',
+              columns: columns(
+                'code',
+                'name',
+                'floor',
+                'fire>',
+                'combination',
+                'active',
+                'styles>',
+              ),
+            },
+          ),
+        );
+      }),
+    );
 
   space
     .command('capacity')
@@ -234,9 +217,8 @@ export function registerSpaceCommands(program: Command, makeContext: () => CliCo
     .requiredOption('--code <code>', 'the room')
     .requiredOption('--style <style>', 'the setup style')
     .requiredOption('--covers <covers>', 'how many it seats that way')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const propertyCode = context.requireProperty();
         const code = catalogCode(options.code ?? '');
         setSpaceCapacity(
@@ -258,8 +240,8 @@ export function registerSpaceCommands(program: Command, makeContext: () => CliCo
             },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerCombinationCommands(program: Command, makeContext: () => CliContext): void {
@@ -272,9 +254,8 @@ export function registerCombinationCommands(program: Command, makeContext: () =>
     .requiredOption('--name <name>', 'the name it is sold under')
     .requiredOption('--parts <codes>', 'comma separated room codes')
     .option('--fire <covers>', 'fire capacity, if it is not the sum of the parts')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const parts = (options.parts ?? '')
           .split(',')
           .map((part) => part.trim())
@@ -300,44 +281,38 @@ export function registerCombinationCommands(program: Command, makeContext: () =>
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   room
     .command('footprint')
     .description('what a room takes out of the diary, and what it clashes with')
     .requiredOption('--code <code>', 'the room')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const propertyCode = context.requireProperty();
-          const code = catalogCode(options.code ?? '');
-          context.write(
-            renderRecord(
-              {
-                code,
-                occupies: physicalFootprint(db, propertyCode, code).join(', '),
-                clashesWith: clashingSpaces(db, propertyCode, code).join(', '),
-                partOf: combinationsContaining(db, propertyCode, code).join(', '),
-              },
-              { format: context.format },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const propertyCode = context.requireProperty();
+        const code = catalogCode(options.code ?? '');
+        context.write(
+          renderRecord(
+            {
+              code,
+              occupies: physicalFootprint(db, propertyCode, code).join(', '),
+              clashesWith: clashingSpaces(db, propertyCode, code).join(', '),
+              partOf: combinationsContaining(db, propertyCode, code).join(', '),
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
 
   room
     .command('service')
     .description('take a room out of service or put it back')
     .requiredOption('--code <code>', 'the room')
     .requiredOption('--state <state>', 'in or out')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const state = (options.state ?? '').trim().toLowerCase();
         if (state !== 'in' && state !== 'out') {
           throw invalidInput(
@@ -354,8 +329,8 @@ export function registerCombinationCommands(program: Command, makeContext: () =>
         context.write(
           renderRecord({ code: updated.code, active: updated.active }, { format: context.format }),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerCalendarCommands(program: Command, makeContext: () => CliContext): void {
@@ -368,9 +343,8 @@ export function registerCalendarCommands(program: Command, makeContext: () => Cl
     .requiredOption('--date <date>', 'the date, YYYY-MM-DD')
     .option('--state <state>', 'closed or open', 'closed')
     .option('--note <note>', 'why', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const entry = addCalendarEntry(db, context.requireProperty(), {
           calendar: options.calendar ?? '',
           date: options.date ?? '',
@@ -383,30 +357,25 @@ export function registerCalendarCommands(program: Command, makeContext: () => Cl
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   calendar
     .command('list')
     .description('the dates one calendar carries')
     .requiredOption('--calendar <which>', 'office or kitchen')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listCalendarEntries(db, context.requireProperty(), options.calendar ?? '').map(
-                (row) => ({ date: row.date, state: row.kind, note: row.note }),
-              ),
-              { format: context.format, empty: 'that calendar carries no dates' },
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listCalendarEntries(db, context.requireProperty(), options.calendar ?? '').map(
+              (row) => ({ date: row.date, state: row.kind, note: row.note }),
             ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+            { format: context.format, empty: 'that calendar carries no dates' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerHoldCommands(program: Command, makeContext: () => CliContext): void {
@@ -422,9 +391,8 @@ export function registerHoldCommands(program: Command, makeContext: () => CliCon
     .requiredOption('--end <time>', 'end time as HH:MM')
     .requiredOption('--until <date>', 'the date the hold runs out')
     .option('--note <text>', 'anything the sales office wants remembered')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const taken = placeHold(
           db,
           context.requireProperty(),
@@ -451,16 +419,15 @@ export function registerHoldCommands(program: Command, makeContext: () => CliCon
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   hold
     .command('list')
     .description('every live hold on a date')
     .requiredOption('--date <date>', 'the date')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         context.write(
           render(
             holdsOn(db, context.requireProperty(), dateArg(options.date ?? '')).map((each) => ({
@@ -477,16 +444,15 @@ export function registerHoldCommands(program: Command, makeContext: () => CliCon
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   hold
     .command('release')
     .description('let a hold go and move everybody behind it up')
     .requiredOption('--id <id>', 'the hold')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const result = releaseHold(db, wholeNumber('hold', options.id ?? ''), context.now());
         context.write(
           renderRecord(
@@ -494,17 +460,16 @@ export function registerHoldCommands(program: Command, makeContext: () => CliCon
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   hold
     .command('challenge')
     .description('tell the hold in front that somebody else wants the room')
     .requiredOption('--id <id>', 'the challenging hold')
     .requiredOption('--by <date>', 'the date the incumbent has to decide by')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const challenge = challengeHold(
           db,
           wholeNumber('hold', options.id ?? ''),
@@ -521,16 +486,15 @@ export function registerHoldCommands(program: Command, makeContext: () => CliCon
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   hold
     .command('lapsed')
     .description('holds whose own date has run out')
     .requiredOption('--on <date>', 'the date to sweep at')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         context.write(
           render(
             lapsedHolds(db, context.requireProperty(), dateArg(options.on ?? '')).map((each) => ({
@@ -547,8 +511,8 @@ export function registerHoldCommands(program: Command, makeContext: () => CliCon
             },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerTurnCommands(program: Command, makeContext: () => CliContext): void {
@@ -561,9 +525,8 @@ export function registerTurnCommands(program: Command, makeContext: () => CliCon
     .requiredOption('--to <style>', 'the setup it goes into')
     .requiredOption('--minutes <minutes>', 'how long it takes')
     .requiredOption('--heads <heads>', 'how many housemen it takes')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const standard = setTurnStandard(
           db,
           context.requireProperty(),
@@ -583,15 +546,14 @@ export function registerTurnCommands(program: Command, makeContext: () => CliCon
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   turn
     .command('table')
     .description('every turn the house has published')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context) => {
         context.write(
           render(
             listTurnStandards(db, context.requireProperty()).map((standard) => ({
@@ -607,17 +569,16 @@ export function registerTurnCommands(program: Command, makeContext: () => CliCon
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   turn
     .command('day')
     .description('every back to back pair on a date')
     .requiredOption('--date <date>', 'the date')
     .option('--tight', 'only the ones that do not fit')
-    .action((options: Record<string, string | boolean>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
         const date = dateArg(String(options.date ?? ''));
         const property = context.requireProperty();
         const turns =
@@ -642,6 +603,6 @@ export function registerTurnCommands(program: Command, makeContext: () => CliCon
             },
           ),
         );
-      });
-    });
+      }),
+    );
 }

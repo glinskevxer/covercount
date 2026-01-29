@@ -17,7 +17,7 @@ import { findClashes, functionsOnDate } from '../../booking/diary.js';
 import { isFunctionStatus } from '../../booking/types.js';
 import { render, renderRecord } from '../output.js';
 import { blockMinute, wholeNumber } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 export function registerFunctionCommands(program: Command, makeContext: () => CliContext): void {
   const fn = program.command('function').description('the functions inside a booking');
@@ -33,9 +33,8 @@ export function registerFunctionCommands(program: Command, makeContext: () => Cl
     .requiredOption('--setup <style>', 'the setup style')
     .requiredOption('--service <style>', 'the service style')
     .option('--covers <covers>', 'covers the salesperson expects', '0')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const created = addFunction(
           db,
           parseEntityId('booking', options.booking ?? ''),
@@ -70,38 +69,33 @@ export function registerFunctionCommands(program: Command, makeContext: () => Cl
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   fn.command('list')
     .description('the functions on a booking')
     .requiredOption('--booking <id>', 'the booking')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listFunctions(db, parseEntityId('booking', options.booking ?? '')).map((row) => ({
-                id: row.id,
-                name: row.name,
-                room: row.spaceCode,
-                date: row.serviceDate,
-                start: row.startMinute,
-                end: row.endMinute,
-                setup: row.setupStyle,
-                service: row.serviceStyle,
-                covers: row.expectedCovers,
-                status: row.status,
-              })),
-              { format: context.format, empty: 'that booking carries no functions' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listFunctions(db, parseEntityId('booking', options.booking ?? '')).map((row) => ({
+              id: row.id,
+              name: row.name,
+              room: row.spaceCode,
+              date: row.serviceDate,
+              start: row.startMinute,
+              end: row.endMinute,
+              setup: row.setupStyle,
+              service: row.serviceStyle,
+              covers: row.expectedCovers,
+              status: row.status,
+            })),
+            { format: context.format, empty: 'that booking carries no functions' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerFunctionChangeCommands(
@@ -121,9 +115,8 @@ export function registerFunctionChangeCommands(
     .option('--setup <style>', 'a new setup style')
     .option('--covers <covers>', 'a new expected cover count')
     .option('--name <name>', 'a new name')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const updated = editFunction(
           db,
           parseEntityId('functionSlot', options.id ?? ''),
@@ -156,17 +149,16 @@ export function registerFunctionChangeCommands(
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   slot
     .command('status')
     .description('hold, confirm, release or cancel a function')
     .requiredOption('--id <id>', 'the function')
     .requiredOption('--to <status>', 'held, definite, released or cancelled')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const to = (options.to ?? '').trim().toUpperCase();
         if (!isFunctionStatus(to)) {
           throw invalidInput('cli.status', `${options.to ?? ''} is not a function status`);
@@ -181,41 +173,36 @@ export function registerFunctionChangeCommands(
         context.write(
           renderRecord({ id: updated.id, status: updated.status }, { format: context.format }),
         );
-      });
-    });
+      }),
+    );
 
   slot
     .command('show')
     .description('one function')
     .requiredOption('--id <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const found = requireFunction(db, parseEntityId('functionSlot', options.id ?? ''));
-          context.write(
-            renderRecord(
-              {
-                id: found.id,
-                booking: found.bookingId,
-                name: found.name,
-                room: found.spaceCode,
-                date: found.serviceDate,
-                start: found.startMinute,
-                end: found.endMinute,
-                setup: found.setupStyle,
-                service: found.serviceStyle,
-                covers: found.expectedCovers,
-                status: found.status,
-              },
-              { format: context.format },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const found = requireFunction(db, parseEntityId('functionSlot', options.id ?? ''));
+        context.write(
+          renderRecord(
+            {
+              id: found.id,
+              booking: found.bookingId,
+              name: found.name,
+              room: found.spaceCode,
+              date: found.serviceDate,
+              start: found.startMinute,
+              end: found.endMinute,
+              setup: found.setupStyle,
+              service: found.serviceStyle,
+              covers: found.expectedCovers,
+              status: found.status,
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerDiaryCommands(program: Command, makeContext: () => CliContext): void {
@@ -225,32 +212,27 @@ export function registerDiaryCommands(program: Command, makeContext: () => CliCo
     .command('day')
     .description('the function board for one date')
     .requiredOption('--date <date>', 'the date')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              functionsOnDate(db, context.requireProperty(), calendarDate(options.date ?? '')).map(
-                (row) => ({
-                  id: row.id,
-                  start: row.startMinute,
-                  end: row.endMinute,
-                  room: row.spaceCode,
-                  name: row.name,
-                  setup: row.setupStyle,
-                  covers: row.expectedCovers,
-                  status: row.status,
-                }),
-              ),
-              { format: context.format, empty: 'nothing is in the diary that day' },
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            functionsOnDate(db, context.requireProperty(), calendarDate(options.date ?? '')).map(
+              (row) => ({
+                id: row.id,
+                start: row.startMinute,
+                end: row.endMinute,
+                room: row.spaceCode,
+                name: row.name,
+                setup: row.setupStyle,
+                covers: row.expectedCovers,
+                status: row.status,
+              }),
             ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+            { format: context.format, empty: 'nothing is in the diary that day' },
+          ),
+        );
+      }),
+    );
 
   diary
     .command('check')
@@ -259,32 +241,27 @@ export function registerDiaryCommands(program: Command, makeContext: () => CliCo
     .requiredOption('--date <date>', 'the service date')
     .requiredOption('--start <time>', 'when it would start')
     .requiredOption('--end <time>', 'when it would end')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const clashes = findClashes(db, {
-            propertyCode: context.requireProperty(),
-            spaceCode: catalogCode(options.room ?? ''),
-            serviceDate: calendarDate(options.date ?? ''),
-            startMinute: blockMinute('start', options.start ?? ''),
-            endMinute: blockMinute('end', options.end ?? ''),
-          });
-          context.write(
-            render(
-              clashes.map((row) => ({
-                id: row.slotId,
-                booking: row.bookingId,
-                room: row.spaceCode,
-                shares: row.sharedSpaces.join(', '),
-                name: row.name,
-              })),
-              { format: context.format, empty: 'that room is free' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const clashes = findClashes(db, {
+          propertyCode: context.requireProperty(),
+          spaceCode: catalogCode(options.room ?? ''),
+          serviceDate: calendarDate(options.date ?? ''),
+          startMinute: blockMinute('start', options.start ?? ''),
+          endMinute: blockMinute('end', options.end ?? ''),
+        });
+        context.write(
+          render(
+            clashes.map((row) => ({
+              id: row.slotId,
+              booking: row.bookingId,
+              room: row.spaceCode,
+              shares: row.sharedSpaces.join(', '),
+              name: row.name,
+            })),
+            { format: context.format, empty: 'that room is free' },
+          ),
+        );
+      }),
+    );
 }

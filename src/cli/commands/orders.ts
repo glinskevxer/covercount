@@ -27,7 +27,7 @@ import {
 import { requireProperty } from '../../property/store.js';
 import { render, renderRecord } from '../output.js';
 import { entityArg } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 export function registerOrderCommands(program: Command, makeContext: () => CliContext): void {
   const order = program.command('order').description('the banquet event order');
@@ -36,28 +36,22 @@ export function registerOrderCommands(program: Command, makeContext: () => CliCo
     .command('preview')
     .description('what the sheet would say if it were drawn now')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const assembled = assembleOrder(db, entityArg('functionSlot', options.function ?? ''));
-          context.write(
-            context.format === 'json' ? JSON.stringify(assembled, null, 2) : renderOrder(assembled),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const assembled = assembleOrder(db, entityArg('functionSlot', options.function ?? ''));
+        context.write(
+          context.format === 'json' ? JSON.stringify(assembled, null, 2) : renderOrder(assembled),
+        );
+      }),
+    );
 
   order
     .command('draw')
     .description('freeze a new revision')
     .requiredOption('--function <id>', 'the function')
     .option('--note <note>', 'why this one was drawn', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const drawn = drawRevision(
           db,
           entityArg('functionSlot', options.function ?? ''),
@@ -77,73 +71,61 @@ export function registerOrderCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   order
     .command('show')
     .description('print a revision as it was frozen')
     .requiredOption('--id <id>', 'the revision')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(renderRevision(db, parseEntityId('beo', options.id ?? '')));
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(renderRevision(db, parseEntityId('beo', options.id ?? '')));
+      }),
+    );
 
   order
     .command('list')
     .description('every revision on a function')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listRevisions(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
-                id: row.id,
-                revision: row.revision,
-                status: row.status,
-                drawnAt: row.drawnAt,
-                drawnBy: row.drawnBy,
-                signedBy: row.signedBy ?? '',
-              })),
-              { format: context.format, empty: 'no sheet has been drawn yet' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listRevisions(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
+              id: row.id,
+              revision: row.revision,
+              status: row.status,
+              drawnAt: row.drawnAt,
+              drawnBy: row.drawnBy,
+              signedBy: row.signedBy ?? '',
+            })),
+            { format: context.format, empty: 'no sheet has been drawn yet' },
+          ),
+        );
+      }),
+    );
 
   order
     .command('distribute')
     .description('send the live revision out')
     .requiredOption('--id <id>', 'the revision')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const moved = distributeRevision(db, parseEntityId('beo', options.id ?? ''));
         context.write(
           renderRecord({ id: moved.id, status: moved.status }, { format: context.format }),
         );
-      });
-    });
+      }),
+    );
 
   order
     .command('sign')
     .description('record the client signature')
     .requiredOption('--id <id>', 'the revision')
     .requiredOption('--by <name>', 'who signed it')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const signed = signRevision(
           db,
           parseEntityId('beo', options.id ?? ''),
@@ -156,42 +138,37 @@ export function registerOrderCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   order
     .command('drift')
     .description('what has moved since the live sheet was drawn')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const functionId = entityArg('functionSlot', options.function ?? '');
-          const live = liveRevision(db, functionId);
-          if (live === undefined) {
-            context.write('no sheet has been drawn yet');
-            return;
-          }
-          if (!revisionIsStale(db, functionId)) {
-            context.write(`${live.id} is still current`);
-            return;
-          }
-          context.write(
-            render(
-              revisionDrift(db, functionId).map((row) => ({
-                field: row.field,
-                was: row.was,
-                becomes: row.becomes,
-              })),
-              { format: context.format, empty: `${live.id} is still current` },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const functionId = entityArg('functionSlot', options.function ?? '');
+        const live = liveRevision(db, functionId);
+        if (live === undefined) {
+          context.write('no sheet has been drawn yet');
+          return;
+        }
+        if (!revisionIsStale(db, functionId)) {
+          context.write(`${live.id} is still current`);
+          return;
+        }
+        context.write(
+          render(
+            revisionDrift(db, functionId).map((row) => ({
+              field: row.field,
+              was: row.was,
+              becomes: row.becomes,
+            })),
+            { format: context.format, empty: `${live.id} is still current` },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerChangeCommands(program: Command, makeContext: () => CliContext): void {
@@ -203,9 +180,8 @@ export function registerChangeCommands(program: Command, makeContext: () => CliC
     .requiredOption('--function <id>', 'the function')
     .requiredOption('--reason <reason>', 'why the change was asked for')
     .option('--fee <amount>', 'a late fee, only allowed after the guarantee closed')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const raised = raiseChangeOrder(
           db,
           entityArg('functionSlot', options.function ?? ''),
@@ -230,69 +206,56 @@ export function registerChangeCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   change
     .command('show')
     .description('what one change order carries')
     .requiredOption('--id <id>', 'the change order')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              changeOrderLines(db, parseEntityId('changeOrder', options.id ?? '')).map((row) => ({
-                field: row.field,
-                was: row.was,
-                becomes: row.becomes,
-              })),
-              { format: context.format, empty: 'that change order carries no lines' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            changeOrderLines(db, parseEntityId('changeOrder', options.id ?? '')).map((row) => ({
+              field: row.field,
+              was: row.was,
+              becomes: row.becomes,
+            })),
+            { format: context.format, empty: 'that change order carries no lines' },
+          ),
+        );
+      }),
+    );
 
   change
     .command('list')
     .description('every change order on a function')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listChangeOrders(db, entityArg('functionSlot', options.function ?? '')).map(
-                (row) => ({
-                  id: row.id,
-                  status: row.status,
-                  afterCutoff: row.afterCutoff,
-                  fee: formatMoney(row.fee),
-                  raisedBy: row.raisedBy,
-                  reason: row.reason,
-                }),
-              ),
-              { format: context.format, empty: 'nothing has been changed on that function' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listChangeOrders(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
+              id: row.id,
+              status: row.status,
+              afterCutoff: row.afterCutoff,
+              fee: formatMoney(row.fee),
+              raisedBy: row.raisedBy,
+              reason: row.reason,
+            })),
+            { format: context.format, empty: 'nothing has been changed on that function' },
+          ),
+        );
+      }),
+    );
 
   change
     .command('apply')
     .description('apply a change order and draw a fresh revision')
     .requiredOption('--id <id>', 'the change order')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const applied = applyChangeOrder(
           db,
           parseEntityId('changeOrder', options.id ?? ''),
@@ -305,16 +268,15 @@ export function registerChangeCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   change
     .command('decline')
     .description('turn a change order down')
     .requiredOption('--id <id>', 'the change order')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const property = requireProperty(db, context.requireProperty());
         const declined = declineChangeOrder(
           db,
@@ -324,6 +286,6 @@ export function registerChangeCommands(program: Command, makeContext: () => CliC
         context.write(
           renderRecord({ id: declined.id, status: declined.status }, { format: context.format }),
         );
-      });
-    });
+      }),
+    );
 }

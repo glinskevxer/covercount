@@ -61,7 +61,7 @@ import {
   serviceStyleArg,
   wholeNumber,
 } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 /** A split is given as ITEM:covers pairs, which is how a client writes one. */
 function parseSplit(values: readonly string[]): { itemCode: string; covers: number }[] {
@@ -86,9 +86,8 @@ export function registerSplitCommands(program: Command, makeContext: () => CliCo
     .requiredOption('--function <id>', 'the function')
     .requiredOption('--course <course>', 'the course')
     .requiredOption('--covers <pairs>', 'comma separated ITEM:count pairs')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const rows = setCourseSplit(
           db,
           entityArg('functionSlot', options.function ?? ''),
@@ -101,51 +100,45 @@ export function registerSplitCommands(program: Command, makeContext: () => CliCo
             { format: context.format, empty: 'that course carries nothing' },
           ),
         );
-      });
-    });
+      }),
+    );
 
   split
     .command('show')
     .description('every split on a function, with anything that does not add up')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const functionId = entityArg('functionSlot', options.function ?? '');
-          context.write(
-            render(
-              listSelections(db, functionId).map((row) => ({
-                course: row.course,
-                item: row.itemCode,
-                covers: row.covers,
-              })),
-              { format: context.format, empty: 'nothing has been split yet' },
-            ),
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const functionId = entityArg('functionSlot', options.function ?? '');
+        context.write(
+          render(
+            listSelections(db, functionId).map((row) => ({
+              course: row.course,
+              item: row.itemCode,
+              covers: row.covers,
+            })),
+            { format: context.format, empty: 'nothing has been split yet' },
+          ),
+        );
+        const problems = splitProblems(db, functionId);
+        for (const problem of problems) {
+          context.writeError(
+            `the ${problem.course} split adds to ${problem.chosen} against ${problem.expected} standard covers`,
           );
-          const problems = splitProblems(db, functionId);
-          for (const problem of problems) {
-            context.writeError(
-              `the ${problem.course} split adds to ${problem.chosen} against ${problem.expected} standard covers`,
-            );
-          }
-        },
-        { readOnly: true },
-      );
-    });
+        }
+      }),
+    );
 
   split
     .command('clear')
     .description('take every split off a function')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const removed = clearSelections(db, entityArg('functionSlot', options.function ?? ''));
         context.write(renderRecord({ removed }, { format: context.format }));
-      });
-    });
+      }),
+    );
 }
 
 export function registerKitchenCommands(program: Command, makeContext: () => CliContext): void {
@@ -155,87 +148,70 @@ export function registerKitchenCommands(program: Command, makeContext: () => Cli
     .command('plates')
     .description('plates per dish, the split and the substitutions together')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              plateDemand(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
-                item: row.itemCode,
-                plates: row.plates,
-              })),
-              {
-                format: context.format,
-                empty: 'nothing has been split yet',
-                columns: columns('item', 'plates>'),
-              },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            plateDemand(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
+              item: row.itemCode,
+              plates: row.plates,
+            })),
+            {
+              format: context.format,
+              empty: 'nothing has been split yet',
+              columns: columns('item', 'plates>'),
+            },
+          ),
+        );
+      }),
+    );
 
   kitchen
     .command('batches')
     .description('whole batches per recipe, by station')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              batchDemand(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
-                station: row.station,
-                recipe: row.recipeCode,
-                plates: row.plates,
-                produced: row.produced,
-                batches: row.batches,
-              })),
-              {
-                format: context.format,
-                empty: 'nothing to make',
-                columns: columns('station', 'recipe', 'plates>', 'produced>', 'batches>'),
-              },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            batchDemand(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
+              station: row.station,
+              recipe: row.recipeCode,
+              plates: row.plates,
+              produced: row.produced,
+              batches: row.batches,
+            })),
+            {
+              format: context.format,
+              empty: 'nothing to make',
+              columns: columns('station', 'recipe', 'plates>', 'produced>', 'batches>'),
+            },
+          ),
+        );
+      }),
+    );
 
   kitchen
     .command('stores')
     .description('what has to come out of the stores, with the waste on the last pack')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              ingredientDemand(db, entityArg('functionSlot', options.function ?? '')).map(
-                (row) => ({
-                  store: row.store,
-                  item: row.ingredientCode,
-                  name: row.name,
-                  need: formatQuantity(row.needed),
-                  packs: row.packs,
-                  waste: `${packWastePercent(row)}%`,
-                }),
-              ),
-              { format: context.format, empty: 'nothing to pick' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            ingredientDemand(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
+              store: row.store,
+              item: row.ingredientCode,
+              name: row.name,
+              need: formatQuantity(row.needed),
+              packs: row.packs,
+              waste: `${packWastePercent(row)}%`,
+            })),
+            { format: context.format, empty: 'nothing to pick' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerRequisitionCommands(program: Command, makeContext: () => CliContext): void {
@@ -248,9 +224,8 @@ export function registerRequisitionCommands(program: Command, makeContext: () =>
     .requiredOption('--area <store>', 'the store area')
     .requiredOption('--functions <ids>', 'comma separated function ids')
     .option('--note <note>', 'anything the store should know', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const raised = raiseRequisition(
           db,
           context.requireProperty(),
@@ -274,32 +249,27 @@ export function registerRequisitionCommands(program: Command, makeContext: () =>
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   requisition
     .command('show')
     .description('the lines on a requisition')
     .requiredOption('--id <id>', 'the requisition')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              requisitionLines(db, entityArg('requisition', options.id ?? '')).map((row) => ({
-                item: row.ingredientCode,
-                need: formatQuantity(row.needed),
-                packs: row.packs,
-              })),
-              { format: context.format, empty: 'that requisition carries no lines' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            requisitionLines(db, entityArg('requisition', options.id ?? '')).map((row) => ({
+              item: row.ingredientCode,
+              need: formatQuantity(row.needed),
+              packs: row.packs,
+            })),
+            { format: context.format, empty: 'that requisition carries no lines' },
+          ),
+        );
+      }),
+    );
 
   requisition
     .command('list')
@@ -307,41 +277,35 @@ export function registerRequisitionCommands(program: Command, makeContext: () =>
     .option('--date <date>', 'only this service date')
     .option('--area <store>', 'only this store area')
     .option('--status <status>', 'only this status')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const rows = listRequisitions(db, context.requireProperty(), {
-            ...(options.date === undefined ? {} : { serviceDate: dateArg(options.date) }),
-            ...(options.area === undefined ? {} : { store: options.area }),
-            ...(options.status === undefined ? {} : { status: options.status }),
-          });
-          context.write(
-            render(
-              rows.map((row) => ({
-                id: row.id,
-                date: row.serviceDate,
-                store: row.store,
-                status: row.status,
-                packs: totalPacks(db, row.id),
-              })),
-              { format: context.format, empty: 'no requisitions match' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const rows = listRequisitions(db, context.requireProperty(), {
+          ...(options.date === undefined ? {} : { serviceDate: dateArg(options.date) }),
+          ...(options.area === undefined ? {} : { store: options.area }),
+          ...(options.status === undefined ? {} : { status: options.status }),
+        });
+        context.write(
+          render(
+            rows.map((row) => ({
+              id: row.id,
+              date: row.serviceDate,
+              store: row.store,
+              status: row.status,
+              packs: totalPacks(db, row.id),
+            })),
+            { format: context.format, empty: 'no requisitions match' },
+          ),
+        );
+      }),
+    );
 
   requisition
     .command('advance')
     .description('issue, pick or cancel a requisition')
     .requiredOption('--id <id>', 'the requisition')
     .requiredOption('--to <status>', 'issued, picked or cancelled')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const moved = advanceRequisition(
           db,
           entityArg('requisition', options.id ?? ''),
@@ -350,17 +314,16 @@ export function registerRequisitionCommands(program: Command, makeContext: () =>
         context.write(
           renderRecord({ id: moved.id, status: moved.status }, { format: context.format }),
         );
-      });
-    });
+      }),
+    );
 
   requisition
     .command('redraw')
     .description('redraw a draft against the demand as it stands now')
     .requiredOption('--id <id>', 'the requisition')
     .requiredOption('--functions <ids>', 'comma separated function ids')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const lines = refreshRequisition(
           db,
           entityArg('requisition', options.id ?? ''),
@@ -376,8 +339,8 @@ export function registerRequisitionCommands(program: Command, makeContext: () =>
             { format: context.format, empty: 'that requisition now carries no lines' },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 export function registerFactorCommands(program: Command, makeContext: () => CliContext): void {
   const factor = program
@@ -390,9 +353,8 @@ export function registerFactorCommands(program: Command, makeContext: () => CliC
     .requiredOption('--style <style>', 'PLATED, BUFFET, STATIONS, RECEPTION or FAMILY')
     .requiredOption('--percent <percent>', 'the factor as a percent, so 115 is fifteen over')
     .option('--note <text>', 'why the chef set it there')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const row = setProductionFactor(
           db,
           context.requireProperty(),
@@ -406,15 +368,14 @@ export function registerFactorCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   factor
     .command('list')
     .description('every factor a property has published')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context) => {
         context.write(
           render(
             listProductionFactors(db, context.requireProperty()).map((row) => ({
@@ -429,16 +390,15 @@ export function registerFactorCommands(program: Command, makeContext: () => CliC
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   factor
     .command('show')
     .description('the factor in force for one style, published or not')
     .requiredOption('--style <style>', 'the service style')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const style = serviceStyleArg(options.style ?? '');
         const value = productionFactor(db, context.requireProperty(), style);
         context.write(
@@ -451,8 +411,8 @@ export function registerFactorCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerStockCommands(program: Command, makeContext: () => CliContext): void {
@@ -464,9 +424,8 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
     .requiredOption('--item <code>', 'the ingredient')
     .requiredOption('--on-hand <quantity>', 'what was counted, like 40kg')
     .option('--par <quantity>', 'what the house wants sitting there')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const level = countStock(
           db,
           context.requireProperty(),
@@ -487,8 +446,8 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   stock
     .command('move')
@@ -497,9 +456,8 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
     .requiredOption('--by <quantity>', 'the movement, negative to issue')
     .requiredOption('--reason', 'ISSUE, RECEIVE, WASTE or TRANSFER')
     .option('--reference <text>', 'the requisition or delivery note')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const level = moveStock(
           db,
           context.requireProperty(),
@@ -515,15 +473,14 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   stock
     .command('list')
     .description('the whole shelf')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context) => {
         context.write(
           render(
             listStockLevels(db, context.requireProperty()).map((level) => ({
@@ -539,15 +496,14 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   stock
     .command('short')
     .description('everything sitting under its par')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context) => {
         context.write(
           render(
             belowPar(db, context.requireProperty()).map((level) => ({
@@ -562,17 +518,16 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   stock
     .command('order')
     .description('what to order for a requirement, in whole packs')
     .requiredOption('--item <code>', 'the ingredient')
     .requiredOption('--need <quantity>', 'what the functions need')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const line = orderLine(
           db,
           context.requireProperty(),
@@ -592,16 +547,15 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   stock
     .command('history')
     .description('every movement against one ingredient')
     .requiredOption('--item <code>', 'the ingredient')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         context.write(
           render(
             stockMovements(db, context.requireProperty(), codeArg(options.item ?? '')).map(
@@ -619,8 +573,8 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
             },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerPurchaseCommands(program: Command, makeContext: () => CliContext): void {
@@ -632,9 +586,8 @@ export function registerPurchaseCommands(program: Command, makeContext: () => Cl
     .command('draft')
     .description('draft an order across a set of functions')
     .requiredOption('--functions <ids>', 'comma separated function ids')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const order = draftPurchaseOrder(
           db,
           listArg(options.functions ?? '').map((id) => entityArg('functionSlot', id)),
@@ -657,16 +610,15 @@ export function registerPurchaseCommands(program: Command, makeContext: () => Cl
           return;
         }
         context.write(renderPurchaseOrder(order));
-      });
-    });
+      }),
+    );
 
   purchase
     .command('summary')
     .description('pack counts by store, without the detail')
     .requiredOption('--functions <ids>', 'comma separated function ids')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const order = draftPurchaseOrder(
           db,
           listArg(options.functions ?? '').map((id) => entityArg('functionSlot', id)),
@@ -685,8 +637,8 @@ export function registerPurchaseCommands(program: Command, makeContext: () => Cl
             },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerCostCommands(program: Command, makeContext: () => CliContext): void {
@@ -699,9 +651,8 @@ export function registerCostCommands(program: Command, makeContext: () => CliCon
     .requiredOption('--from <date>', 'the date the price takes effect')
     .requiredOption('--pack <amount>', 'what one pack costs')
     .option('--supplier <name>', 'who quoted it')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const quoted = setIngredientCost(
           db,
           context.requireProperty(),
@@ -721,16 +672,15 @@ export function registerCostCommands(program: Command, makeContext: () => CliCon
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   cost
     .command('history')
     .description('every price quoted against one ingredient')
     .requiredOption('--item <code>', 'the ingredient')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         context.write(
           render(
             costHistory(db, context.requireProperty(), codeArg(options.item ?? '')).map((row) => ({
@@ -744,17 +694,16 @@ export function registerCostCommands(program: Command, makeContext: () => CliCon
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   cost
     .command('recipe')
     .description('cost one recipe, batch and portion')
     .requiredOption('--recipe <code>', 'the recipe')
     .requiredOption('--on <date>', 'the date to price it on')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const costed = costRecipe(
           db,
           context.requireProperty(),
@@ -791,8 +740,8 @@ export function registerCostCommands(program: Command, makeContext: () => CliCon
             `per portion: ${formatMoney(costed.portionCost)}`,
           ].join('\n'),
         );
-      });
-    });
+      }),
+    );
 
   cost
     .command('margin')
@@ -800,9 +749,8 @@ export function registerCostCommands(program: Command, makeContext: () => CliCon
     .requiredOption('--recipe <code>', 'the recipe')
     .requiredOption('--on <date>', 'the date to price it on')
     .requiredOption('--price <amount>', 'what the plate sells for')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const costed = costRecipe(
           db,
           context.requireProperty(),
@@ -822,8 +770,8 @@ export function registerCostCommands(program: Command, makeContext: () => CliCon
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerLarderCommands(program: Command, makeContext: () => CliContext): void {
@@ -838,9 +786,8 @@ export function registerLarderCommands(program: Command, makeContext: () => CliC
     .requiredOption('--unit <unit>', 'the unit it is counted in')
     .requiredOption('--pack <size>', 'how much comes in one pack')
     .option('--pack-unit <unit>', 'the unit the pack is measured in, if it differs')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const ingredient = createIngredient(
           db,
           context.requireProperty(),
@@ -866,17 +813,16 @@ export function registerLarderCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   larder
     .command('list')
     .description('every ingredient, or just one store')
     .option('--area <store>', 'narrow to one store')
     .option('--all', 'include the ones taken off the list')
-    .action((options: Record<string, string | boolean>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
         context.write(
           render(
             listIngredients(db, context.requireProperty(), {
@@ -897,16 +843,15 @@ export function registerLarderCommands(program: Command, makeContext: () => CliC
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   larder
     .command('retire')
     .description('take an ingredient off the buying list without deleting it')
     .requiredOption('--code <code>', 'the ingredient')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const ingredient = setIngredientActive(
           db,
           context.requireProperty(),
@@ -919,8 +864,8 @@ export function registerLarderCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerActualCommands(program: Command, makeContext: () => CliContext): void {
@@ -934,9 +879,8 @@ export function registerActualCommands(program: Command, makeContext: () => CliC
     .requiredOption('--produced <count>', 'portions that went out')
     .option('--returned <count>', 'portions that came back', '0')
     .option('--note <text>', 'anything the chef wants remembered')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const row = recordProduced(
           db,
           entityArg('functionSlot', options.function ?? ''),
@@ -954,16 +898,15 @@ export function registerActualCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   actual
     .command('variance')
     .description('plan against actual for one function')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const variance = productionVariance(db, entityArg('functionSlot', options.function ?? ''));
         context.write(
           render(
@@ -984,16 +927,15 @@ export function registerActualCommands(program: Command, makeContext: () => CliC
             },
           ),
         );
-      });
-    });
+      }),
+    );
 
   actual
     .command('suggest')
     .description('what the production factor should have been')
     .requiredOption('--functions <ids>', 'comma separated function ids, all one service style')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const suggestion = suggestFactor(
           db,
           listArg(options.functions ?? '').map((id) => entityArg('functionSlot', id)),
@@ -1011,6 +953,6 @@ export function registerActualCommands(program: Command, makeContext: () => CliC
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 }

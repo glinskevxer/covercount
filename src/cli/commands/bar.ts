@@ -19,7 +19,7 @@ import {
 import { render, renderRecord } from '../output.js';
 import { drawBarCharges } from '../../billing/charges.js';
 import { entityArg, moneyArg, wholeNumber } from '../args.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 
 export function registerBarTierCommands(program: Command, makeContext: () => CliContext): void {
   const tiers = program.command('bartier').description('the bar tiers a property sells');
@@ -31,9 +31,8 @@ export function registerBarTierCommands(program: Command, makeContext: () => Cli
     .requiredOption('--name <name>', 'what it is called')
     .requiredOption('--first <amount>', 'per cover for the first hour')
     .requiredOption('--extra <amount>', 'per cover for each hour after it')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const tier = createBarTier(
           db,
           context.requireProperty(),
@@ -56,32 +55,27 @@ export function registerBarTierCommands(program: Command, makeContext: () => Cli
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   tiers
     .command('list')
     .description('every tier on file')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listBarTiers(db, context.requireProperty()).map((row) => ({
-                code: row.code,
-                name: row.name,
-                firstHour: formatMoney(row.firstHour),
-                extraHour: formatMoney(row.extraHour),
-              })),
-              { format: context.format, empty: 'no bar tiers are on file' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        context.write(
+          render(
+            listBarTiers(db, context.requireProperty()).map((row) => ({
+              code: row.code,
+              name: row.name,
+              firstHour: formatMoney(row.firstHour),
+              extraHour: formatMoney(row.extraHour),
+            })),
+            { format: context.format, empty: 'no bar tiers are on file' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerBarCommands(program: Command, makeContext: () => CliContext): void {
@@ -95,9 +89,8 @@ export function registerBarCommands(program: Command, makeContext: () => CliCont
     .option('--tier <code>', 'the tier, for a package bar')
     .option('--hours <hours>', 'how long it runs', '0')
     .option('--note <note>', 'anything else', '')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const set = setBar(db, entityArg('functionSlot', options.function ?? ''), {
           kind: options.kind ?? '',
           ...(options.tier === undefined ? {} : { tierCode: options.tier }),
@@ -115,8 +108,8 @@ export function registerBarCommands(program: Command, makeContext: () => CliCont
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   bar
     .command('pour')
@@ -126,9 +119,8 @@ export function registerBarCommands(program: Command, makeContext: () => CliCont
     .requiredOption('--opening <tenths>', 'tenths of a bottle at the start')
     .requiredOption('--closing <tenths>', 'tenths of a bottle at the end')
     .requiredOption('--unit <amount>', 'what a whole bottle costs')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const pour = recordPour(db, entityArg('functionSlot', options.function ?? ''), {
           itemCode: options.item ?? '',
           openingTenths: wholeNumber('opening', options.opening ?? ''),
@@ -146,65 +138,55 @@ export function registerBarCommands(program: Command, makeContext: () => CliCont
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   bar
     .command('show')
     .description('the bar on a function and what it comes to')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const functionId = entityArg('functionSlot', options.function ?? '');
-          const set = requireBar(db, functionId);
-          const charge = barCharge(db, functionId);
-          context.write(
-            renderRecord(
-              {
-                function: functionId,
-                kind: set.kind,
-                tier: set.tierCode ?? '',
-                hours: set.hours,
-                covers: charge.covers,
-                amount: formatMoney(charge.amount),
-                detail: charge.detail,
-              },
-              { format: context.format },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const functionId = entityArg('functionSlot', options.function ?? '');
+        const set = requireBar(db, functionId);
+        const charge = barCharge(db, functionId);
+        context.write(
+          renderRecord(
+            {
+              function: functionId,
+              kind: set.kind,
+              tier: set.tierCode ?? '',
+              hours: set.hours,
+              covers: charge.covers,
+              amount: formatMoney(charge.amount),
+              detail: charge.detail,
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
 
   bar
     .command('pours')
     .description('every bottle counted on a function')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          context.write(
-            render(
-              listPours(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
-                item: row.itemCode,
-                opening: row.openingTenths,
-                closing: row.closingTenths,
-                poured: pouredTenths(row),
-                charge: formatMoney(pourCharge(row)),
-              })),
-              { format: context.format, empty: 'nothing has been counted' },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listPours(db, entityArg('functionSlot', options.function ?? '')).map((row) => ({
+              item: row.itemCode,
+              opening: row.openingTenths,
+              closing: row.closingTenths,
+              poured: pouredTenths(row),
+              charge: formatMoney(pourCharge(row)),
+            })),
+            { format: context.format, empty: 'nothing has been counted' },
+          ),
+        );
+      }),
+    );
 }
 
 export function registerBarBillingCommands(program: Command, makeContext: () => CliContext): void {
@@ -214,9 +196,8 @@ export function registerBarBillingCommands(program: Command, makeContext: () => 
     .command('draw')
     .description('draw the bar charge onto the function')
     .requiredOption('--function <id>', 'the function')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const drawn = drawBarCharges(db, entityArg('functionSlot', options.function ?? ''));
         context.write(
           render(
@@ -229,6 +210,6 @@ export function registerBarBillingCommands(program: Command, makeContext: () => 
             { format: context.format, empty: 'that bar charges the client nothing' },
           ),
         );
-      });
-    });
+      }),
+    );
 }

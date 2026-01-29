@@ -9,7 +9,7 @@ import { tableNames } from '../../store/database.js';
 import { appliedMigrations } from '../../store/migrate.js';
 import { MIGRATIONS, TARGET_SCHEMA_VERSION, storeVersion } from '../../store/schema.js';
 import { columns, render, renderRecord } from '../output.js';
-import { withOpenStore, type CliContext } from '../context.js';
+import { onReadStore, onStore, type CliContext } from '../context.js';
 import { backupIsCurrent, backupTo, readBackup } from '../../store/backup.js';
 import { seedDemoProperty } from '../../demo/property.js';
 import { countRows, exportSetup, importSetup, type SetupExport } from '../../store/transfer.js';
@@ -21,9 +21,8 @@ export function registerStoreCommands(program: Command, makeContext: () => CliCo
   store
     .command('init')
     .description('create the store and bring it up to the schema this build carries')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context) => {
         context.write(
           renderRecord(
             {
@@ -34,37 +33,32 @@ export function registerStoreCommands(program: Command, makeContext: () => CliCo
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 
   store
     .command('status')
     .description('report the schema version and the migrations applied')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const applied = appliedMigrations(db);
-          context.write(
-            render(
-              applied.map((row) => ({
-                id: row.id,
-                name: row.name,
-                checksum: row.checksum,
-                applied: row.appliedAt,
-              })),
-              {
-                format: context.format,
-                empty: 'no migrations have been applied',
-                columns: columns('id>', 'name', 'checksum', 'applied'),
-              },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        const applied = appliedMigrations(db);
+        context.write(
+          render(
+            applied.map((row) => ({
+              id: row.id,
+              name: row.name,
+              checksum: row.checksum,
+              applied: row.appliedAt,
+            })),
+            {
+              format: context.format,
+              empty: 'no migrations have been applied',
+              columns: columns('id>', 'name', 'checksum', 'applied'),
+            },
+          ),
+        );
+      }),
+    );
 
   store
     .command('migrations')
@@ -167,9 +161,8 @@ export function registerDemoCommands(program: Command, makeContext: () => CliCon
   demo
     .command('seed')
     .description('build a whole property, rooms, menu, kitchen, crew and rates')
-    .action(() => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context) => {
         const result = seedDemoProperty(db, context.now());
         context.write(
           renderRecord(
@@ -184,8 +177,8 @@ export function registerDemoCommands(program: Command, makeContext: () => CliCon
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 }
 
 export function registerTransferCommands(program: Command, makeContext: () => CliContext): void {
@@ -195,37 +188,31 @@ export function registerTransferCommands(program: Command, makeContext: () => Cl
     .command('export')
     .description('write the property setup out as JSON')
     .option('--to <path>', 'write to a file instead of standard output')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(
-        context,
-        (db) => {
-          const payload = exportSetup(db, context.requireProperty(), context.now());
-          const json = JSON.stringify(payload, null, 2);
-          if (options.to === undefined) {
-            context.write(json);
-            return;
-          }
-          writeFileSync(options.to, `${json}\n`, 'utf8');
-          context.write(
-            renderRecord(
-              { path: options.to, property: payload.propertyCode, rows: countRows(payload) },
-              { format: context.format },
-            ),
-          );
-        },
-        { readOnly: true },
-      );
-    });
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const payload = exportSetup(db, context.requireProperty(), context.now());
+        const json = JSON.stringify(payload, null, 2);
+        if (options.to === undefined) {
+          context.write(json);
+          return;
+        }
+        writeFileSync(options.to, `${json}\n`, 'utf8');
+        context.write(
+          renderRecord(
+            { path: options.to, property: payload.propertyCode, rows: countRows(payload) },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
 
   setup
     .command('import')
     .description('read a property setup in, optionally under a new code')
     .requiredOption('--from <path>', 'the export to read')
     .option('--as <code>', 'bring it in under a different property code')
-    .action((options: Record<string, string>) => {
-      const context = makeContext();
-      withOpenStore(context, (db) => {
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
         const payload = JSON.parse(readFileSync(options.from ?? '', 'utf8')) as SetupExport;
         const result = importSetup(db, payload, {
           ...(options.as === undefined ? {} : { asPropertyCode: options.as }),
@@ -236,6 +223,6 @@ export function registerTransferCommands(program: Command, makeContext: () => Cl
             { format: context.format },
           ),
         );
-      });
-    });
+      }),
+    );
 }
