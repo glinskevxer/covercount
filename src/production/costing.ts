@@ -14,7 +14,7 @@
  */
 
 import { calendarDate, type CalendarDate } from '../core/calendar.js';
-import { invalidInput, notFound } from '../core/errors.js';
+import { invalidInput, isDomainError, notFound } from '../core/errors.js';
 import type { CatalogCode } from '../core/ids.js';
 import { money, subtractMoney, zeroMoney, type Money } from '../core/money.js';
 import { convertQuantity, type Quantity } from '../core/quantity.js';
@@ -211,4 +211,28 @@ export function marginOn(price: Money, cost: Money): Margin {
 /** A zero cost in the property's currency, for a recipe with no lines. */
 export function noCost(db: Database, propertyCode: CatalogCode): Money {
   return zeroMoney(requireProperty(db, propertyCode).currency);
+}
+
+/**
+ * The same, but hands back nothing where a supplier price is missing.
+ *
+ * A menu report covering forty items cannot fall over because one of them has
+ * never been quoted. The caller that wants the refusal keeps calling
+ * `costRecipe`; the caller building a report wants to say which lines it could
+ * not price and carry on with the rest.
+ */
+export function tryCostRecipe(
+  db: Database,
+  propertyCode: CatalogCode,
+  recipeCode: CatalogCode,
+  on: CalendarDate,
+): RecipeCost | undefined {
+  try {
+    return costRecipe(db, propertyCode, recipeCode, on);
+  } catch (error) {
+    if (isDomainError(error) && error.code === 'cost.missing') {
+      return undefined;
+    }
+    throw error;
+  }
 }

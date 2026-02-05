@@ -1516,6 +1516,38 @@ what the production factor should have been
 | --- | --- |
 | `--functions <ids>` | comma separated function ids, all one service style (required) |
 
+## `menu`
+
+what a package costs and what it makes
+
+### `menu cost`
+
+cost a package by its dearest choice in each course
+
+| option | what it is |
+| --- | --- |
+| `--package <code>` | the package (required) |
+| `--on <date>` | the date to price it on (required) |
+
+### `menu margin`
+
+the margin a package is priced at
+
+| option | what it is |
+| --- | --- |
+| `--package <code>` | the package (required) |
+| `--book <code>` | the price book (required) |
+| `--on <date>` | the date to price it on (required) |
+
+### `menu actual`
+
+what one function actually cost, off the split
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+| `--on <date>` | the date to price it on (required) |
+
 ## `kitchen`
 
 what the split turns into

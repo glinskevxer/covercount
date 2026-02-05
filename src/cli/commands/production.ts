@@ -48,6 +48,7 @@ import {
   setIngredientActive,
 } from '../../production/ingredients.js';
 import { productionVariance, recordProduced, suggestFactor } from '../../production/actuals.js';
+import { costPackage, functionFoodCost, packageMargin } from '../../catalog/margin.js';
 import { formatRate, ratePercent } from '../../core/rate.js';
 import { columns, render, renderRecord } from '../output.js';
 import {
@@ -949,6 +950,101 @@ export function registerActualCommands(program: Command, makeContext: () => CliC
               functions: suggestion.functionsRead,
               plates: suggestion.platesRead,
               served: suggestion.servedRead,
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
+}
+
+export function registerMenuCostCommands(program: Command, makeContext: () => CliContext): void {
+  const menu = program.command('menu').description('what a package costs and what it makes');
+
+  menu
+    .command('cost')
+    .description('cost a package by its dearest choice in each course')
+    .requiredOption('--package <code>', 'the package')
+    .requiredOption('--on <date>', 'the date to price it on')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const costed = costPackage(
+          db,
+          context.requireProperty(),
+          codeArg(options.package ?? ''),
+          dateArg(options.on ?? ''),
+        );
+        context.write(
+          render(
+            costed.courses.map((course) => ({
+              course: course.course,
+              choices: course.choices,
+              offered: course.options.length,
+              worst: formatMoney(course.worstCase),
+              uncosted: course.uncosted.join(' '),
+            })),
+            {
+              format: context.format,
+              empty: 'that package has no courses',
+              columns: columns('course', 'choices>', 'offered>', 'worst>', 'uncosted'),
+            },
+          ),
+        );
+      }),
+    );
+
+  menu
+    .command('margin')
+    .description('the margin a package is priced at')
+    .requiredOption('--package <code>', 'the package')
+    .requiredOption('--book <code>', 'the price book')
+    .requiredOption('--on <date>', 'the date to price it on')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const found = packageMargin(
+          db,
+          context.requireProperty(),
+          codeArg(options.package ?? ''),
+          codeArg(options.book ?? ''),
+          dateArg(options.on ?? ''),
+        );
+        context.write(
+          renderRecord(
+            {
+              package: found.packageCode,
+              price: formatMoney(found.margin.price),
+              cost: formatMoney(found.margin.cost),
+              gross: formatMoney(found.margin.gross),
+              margin: formatRate(found.margin.marginRate),
+              food: formatRate(found.margin.costRate),
+              uncosted: found.worstCase.uncosted,
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
+
+  menu
+    .command('actual')
+    .description('what one function actually cost, off the split')
+    .requiredOption('--function <id>', 'the function')
+    .requiredOption('--on <date>', 'the date to price it on')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const actual = functionFoodCost(
+          db,
+          entityArg('functionSlot', options.function ?? ''),
+          dateArg(options.on ?? ''),
+        );
+        context.write(
+          renderRecord(
+            {
+              covers: actual.covers,
+              actual: formatMoney(actual.actualCost),
+              worstCase: formatMoney(actual.worstCaseCost),
+              perCover: formatMoney(actual.perCover),
+              uncosted: actual.uncosted.join(' '),
             },
             { format: context.format },
           ),
