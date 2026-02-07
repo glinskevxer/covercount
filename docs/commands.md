@@ -793,6 +793,39 @@ the balance by age bucket
 | `--account <code>` | the account (required) |
 | `--on <date>` | the date to age it at (required) |
 
+## `commission`
+
+what a third party planner is owed
+
+### `commission agree`
+
+record the commission an account was promised
+
+| option | what it is |
+| --- | --- |
+| `--account <code>` | the account (required) |
+| `--planner <name>` | who it is owed to (required) |
+| `--percent <percent>` | the rate (required) |
+| `--base <base>` | food-beverage, net or gross (required) |
+| `--note <text>` | the clause it comes from |
+
+### `commission due`
+
+what the planner earns on one invoice
+
+| option | what it is |
+| --- | --- |
+| `--invoice <id>` | the invoice (required) |
+
+### `commission compare`
+
+the same rate under each of the three bases
+
+| option | what it is |
+| --- | --- |
+| `--invoice <id>` | the invoice (required) |
+| `--percent <percent>` | the rate to compare at (required) |
+
 ## `settle`
 
 paying an invoice off

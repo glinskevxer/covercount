@@ -5,7 +5,7 @@
 import type { Command } from 'commander';
 import { catalogCode, parseEntityId } from '../../core/ids.js';
 import { formatMoney, parseMoney } from '../../core/money.js';
-import { formatRate } from '../../core/rate.js';
+import { formatRate, rate } from '../../core/rate.js';
 import { createTaxProfile, listTaxProfiles, setTaxRate, taxRates } from '../../billing/tax.js';
 import {
   addCharge,
@@ -33,6 +33,7 @@ import {
   sweepMinimum,
 } from '../../billing/minimum.js';
 import { accountStatement, setCreditTerms } from '../../billing/statement.js';
+import { commissionOn, compareBases, paysOnTax, setCommission } from '../../billing/commission.js';
 import { columns, render, renderRecord } from '../output.js';
 import { dateArg, entityArg, moneyArg, percentToPpm, wholeNumber } from '../args.js';
 import { onReadStore, onStore, type CliContext } from '../context.js';
@@ -639,6 +640,99 @@ export function registerStatementCommands(program: Command, makeContext: () => C
               format: context.format,
               empty: 'nothing to age',
               columns: columns('age', 'balance>'),
+            },
+          ),
+        );
+      }),
+    );
+}
+
+export function registerCommissionCommands(program: Command, makeContext: () => CliContext): void {
+  const commission = program
+    .command('commission')
+    .description('what a third party planner is owed');
+
+  commission
+    .command('agree')
+    .description('record the commission an account was promised')
+    .requiredOption('--account <code>', 'the account')
+    .requiredOption('--planner <name>', 'who it is owed to')
+    .requiredOption('--percent <percent>', 'the rate')
+    .requiredOption('--base <base>', 'food-beverage, net or gross')
+    .option('--note <text>', 'the clause it comes from')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
+        const agreement = setCommission(
+          db,
+          context.requireProperty(),
+          catalogCode(options.account ?? ''),
+          {
+            planner: options.planner ?? '',
+            ratePpm: percentToPpm('commission', options.percent ?? ''),
+            base: options.base ?? '',
+            note: options.note ?? '',
+          },
+        );
+        context.write(
+          renderRecord(
+            {
+              planner: agreement.planner,
+              rate: formatRate(agreement.commission),
+              base: agreement.base,
+              onTax: paysOnTax(agreement.base),
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
+
+  commission
+    .command('due')
+    .description('what the planner earns on one invoice')
+    .requiredOption('--invoice <id>', 'the invoice')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const due = commissionOn(db, entityArg('invoice', options.invoice ?? ''));
+        context.write(
+          renderRecord(
+            {
+              planner: due.planner,
+              base: due.agreement.base,
+              on: formatMoney(due.base),
+              rate: formatRate(due.agreement.commission),
+              due: formatMoney(due.due),
+              onTax: due.includesTax,
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
+
+  commission
+    .command('compare')
+    .description('the same rate under each of the three bases')
+    .requiredOption('--invoice <id>', 'the invoice')
+    .requiredOption('--percent <percent>', 'the rate to compare at')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const compared = compareBases(
+          db,
+          entityArg('invoice', options.invoice ?? ''),
+          rate(percentToPpm('commission', options.percent ?? '')),
+        );
+        context.write(
+          render(
+            compared.map((entry) => ({
+              base: entry.base,
+              on: formatMoney(entry.amount),
+              due: formatMoney(entry.due),
+            })),
+            {
+              format: context.format,
+              empty: 'nothing to compare',
+              columns: columns('base', 'on>', 'due>'),
             },
           ),
         );

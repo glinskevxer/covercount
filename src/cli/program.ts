@@ -44,6 +44,7 @@ import {
   registerChargeCommands,
   registerInvoiceCommands,
   registerMinimumCommands,
+  registerCommissionCommands,
   registerStatementCommands,
   registerPaymentCommands,
   registerTaxCommands,
@@ -127,6 +128,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerInvoiceCommands(program, makeContext);
   registerMinimumCommands(program, makeContext);
   registerStatementCommands(program, makeContext);
+  registerCommissionCommands(program, makeContext);
   registerPaymentCommands(program, makeContext);
   registerOrderCommands(program, makeContext);
   registerChangeCommands(program, makeContext);

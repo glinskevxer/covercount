@@ -30,6 +30,7 @@ import { migration020 } from './migrations/020-production-actual.js';
 import { migration021 } from './migrations/021-credit-terms.js';
 import { migration022 } from './migrations/022-space-hold.js';
 import { migration023 } from './migrations/023-turn-standard.js';
+import { migration024 } from './migrations/024-commission.js';
 import { migrate, schemaVersion, type MigrateResult } from './migrate.js';
 import { openDatabase, type Database, type OpenDatabaseOptions } from './database.js';
 
@@ -57,6 +58,7 @@ export const MIGRATIONS: readonly Migration[] = [
   migration021,
   migration022,
   migration023,
+  migration024,
 ];
 
 export const TARGET_SCHEMA_VERSION = MIGRATIONS.reduce(
