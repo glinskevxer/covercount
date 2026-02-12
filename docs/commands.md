@@ -1130,6 +1130,29 @@ only what is still open on a booking
 | --- | --- |
 | `--booking <id>` | the booking (required) |
 
+## `pace`
+
+what is coming, day by day
+
+### `pace range`
+
+covers and revenue across a date range
+
+| option | what it is |
+| --- | --- |
+| `--from <date>` | the first date (required) |
+| `--to <date>` | the last date (required) |
+| `--all-days` | include the days with nothing on them |
+
+### `pace summary`
+
+the totals across a range, without the daily detail
+
+| option | what it is |
+| --- | --- |
+| `--from <date>` | the first date (required) |
+| `--to <date>` | the last date (required) |
+
 ## `serve`
 
 the read only http service

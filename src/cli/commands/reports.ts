@@ -5,6 +5,8 @@
  */
 
 import type { Command } from 'commander';
+import { busyDays, forecast, renderForecast } from '../../reports/forecast.js';
+import { formatMoney } from '../../core/money.js';
 import { calendarDate } from '../../core/calendar.js';
 import {
   packsByStore,
@@ -22,8 +24,8 @@ import {
   staffingSheet,
 } from '../../reports/house.js';
 import { conferenceResume, renderResume } from '../../reports/resume.js';
-import { columns, render } from '../output.js';
-import { entityArg } from '../args.js';
+import { columns, render, renderRecord } from '../output.js';
+import { dateArg, entityArg } from '../args.js';
 import { onReadStore, type CliContext } from '../context.js';
 
 export function registerReportCommands(program: Command, makeContext: () => CliContext): void {
@@ -156,6 +158,90 @@ export function registerResumeCommands(program: Command, makeContext: () => CliC
         );
         context.write(
           render(rows, { format: context.format, empty: 'nothing is open on that booking' }),
+        );
+      }),
+    );
+}
+
+export function registerForecastCommands(program: Command, makeContext: () => CliContext): void {
+  const pace = program.command('pace').description('what is coming, day by day');
+
+  pace
+    .command('range')
+    .description('covers and revenue across a date range')
+    .requiredOption('--from <date>', 'the first date')
+    .requiredOption('--to <date>', 'the last date')
+    .option('--all-days', 'include the days with nothing on them')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
+        const found = forecast(
+          db,
+          context.requireProperty(),
+          dateArg(String(options.from ?? '')),
+          dateArg(String(options.to ?? '')),
+        );
+        if (context.format === 'table' && options.allDays !== true) {
+          context.write(renderForecast(found));
+          return;
+        }
+        const days = options.allDays === true ? found.days : busyDays(found);
+        context.write(
+          render(
+            days.map((day) => ({
+              date: day.serviceDate,
+              functions: day.functions,
+              definite: day.definiteCovers,
+              held: day.heldCovers,
+              revenue: formatMoney(day.definiteRevenue),
+              tentative: formatMoney(day.heldRevenue),
+              labour: formatMoney(day.labour),
+            })),
+            {
+              format: context.format,
+              empty: 'nothing on the books',
+              columns: columns(
+                'date',
+                'functions>',
+                'definite>',
+                'held>',
+                'revenue>',
+                'tentative>',
+                'labour>',
+              ),
+            },
+          ),
+        );
+      }),
+    );
+
+  pace
+    .command('summary')
+    .description('the totals across a range, without the daily detail')
+    .requiredOption('--from <date>', 'the first date')
+    .requiredOption('--to <date>', 'the last date')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const found = forecast(
+          db,
+          context.requireProperty(),
+          dateArg(options.from ?? ''),
+          dateArg(options.to ?? ''),
+        );
+        context.write(
+          renderRecord(
+            {
+              from: found.from,
+              to: found.to,
+              days: busyDays(found).length,
+              definite: found.definiteCovers,
+              held: found.heldCovers,
+              revenue: formatMoney(found.definiteRevenue),
+              tentative: formatMoney(found.heldRevenue),
+              labour: formatMoney(found.labour),
+              unpriced: found.unpriced,
+            },
+            { format: context.format },
+          ),
         );
       }),
     );
