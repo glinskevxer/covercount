@@ -30,6 +30,18 @@ report the schema version and the migrations applied
 
 list the migrations this build carries
 
+### `store health`
+
+whether the file is intact and what is in it
+
+### `store compact`
+
+hand the free pages back to the filesystem
+
+### `store analyse`
+
+refresh the statistics the query planner reads
+
 ## `backup`
 
 copies of the store

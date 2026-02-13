@@ -12,6 +12,7 @@ import { describeError, isDomainError } from '../core/errors.js';
 import { buildContext, type CliContext, type CliEnvironment } from './context.js';
 import {
   registerBackupCommands,
+  registerMaintenanceCommands,
   registerDemoCommands,
   registerTransferCommands,
   registerStoreCommands,
@@ -108,6 +109,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
     });
 
   registerStoreCommands(program, makeContext);
+  registerMaintenanceCommands(program, makeContext);
   registerBackupCommands(program, makeContext);
   registerDemoCommands(program, makeContext);
   registerTransferCommands(program, makeContext);

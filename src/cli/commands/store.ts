@@ -5,10 +5,11 @@
  */
 
 import type { Command } from 'commander';
+import { analyse, compact, health } from '../../store/maintenance.js';
 import { tableNames } from '../../store/database.js';
 import { appliedMigrations } from '../../store/migrate.js';
 import { MIGRATIONS, TARGET_SCHEMA_VERSION, storeVersion } from '../../store/schema.js';
-import { columns, render, renderRecord } from '../output.js';
+import { columns, render, renderJson, renderRecord } from '../output.js';
 import { onReadStore, onStore, type CliContext } from '../context.js';
 import { backupIsCurrent, backupTo, readBackup } from '../../store/backup.js';
 import { seedDemoProperty } from '../../demo/property.js';
@@ -223,6 +224,80 @@ export function registerTransferCommands(program: Command, makeContext: () => Cl
             { format: context.format },
           ),
         );
+      }),
+    );
+}
+
+export function registerMaintenanceCommands(program: Command, makeContext: () => CliContext): void {
+  const store = program.commands.find((command) => command.name() === 'store');
+  if (store === undefined) {
+    throw new Error('the store command has to be registered before its maintenance commands');
+  }
+
+  store
+    .command('health')
+    .description('whether the file is intact and what is in it')
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        const report = health(db);
+        if (context.format === 'json') {
+          context.write(renderJson(report));
+          return;
+        }
+        context.write(
+          [
+            renderRecord(
+              {
+                schema: report.schemaVersion,
+                integrity: report.integrity,
+                references: report.referenceProblems.length,
+                tables: report.tables,
+                rows: report.rows,
+                bytes: report.pages.bytes,
+                reclaimable: report.pages.reclaimable,
+              },
+              { format: context.format },
+            ),
+            '',
+            render(
+              report.biggest.map((size) => ({ table: size.table, rows: size.rows })),
+              {
+                format: context.format,
+                empty: 'nothing in the store',
+                columns: columns('table', 'rows>'),
+              },
+            ),
+          ].join('\n'),
+        );
+      }),
+    );
+
+  store
+    .command('compact')
+    .description('hand the free pages back to the filesystem')
+    .action(
+      onStore(makeContext, (db, context) => {
+        const result = compact(db);
+        context.write(
+          renderRecord(
+            {
+              before: result.before.bytes,
+              after: result.after.bytes,
+              freed: result.bytesFreed,
+              pagesReclaimed: result.before.freePages,
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
+
+  store
+    .command('analyse')
+    .description('refresh the statistics the query planner reads')
+    .action(
+      onStore(makeContext, (db, context) => {
+        context.write(renderRecord({ statistics: analyse(db) }, { format: context.format }));
       }),
     );
 }

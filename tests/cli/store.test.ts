@@ -104,3 +104,40 @@ describe('the program itself', () => {
     expect(result.lines.length).toBeGreaterThan(20);
   });
 });
+
+describe('covercount store health', () => {
+  it('reports a clean store', () => {
+    const cli = cliHarness();
+    cli.run('store', 'init');
+    const health = cli.json<{
+      integrity: string;
+      referenceProblems: string[];
+      tables: number;
+      pages: { bytes: number };
+      biggest: { table: string; rows: number }[];
+    }>('store', 'health');
+    expect(health.integrity).toBe('ok');
+    expect(health.referenceProblems).toEqual([]);
+    expect(health.tables).toBeGreaterThan(20);
+    expect(health.pages.bytes).toBeGreaterThan(0);
+    expect(health.biggest[0]?.table).toBe('schema_migration');
+  });
+
+  it('compacts and says how much it handed back', () => {
+    const cli = cliHarness();
+    cli.run('store', 'init');
+    cli.run('demo', 'seed');
+    const result = cli.json<{ before: number; after: number; freed: number }>('store', 'compact');
+    expect(result.before).toBeGreaterThan(0);
+    expect(result.after).toBeGreaterThan(0);
+    expect(result.freed).toBeGreaterThanOrEqual(0);
+    expect(cli.json<{ integrity: string }>('store', 'health').integrity).toBe('ok');
+  });
+
+  it('refreshes the planner statistics', () => {
+    const cli = cliHarness();
+    cli.run('store', 'init');
+    cli.run('demo', 'seed');
+    expect(cli.json<{ statistics: number }>('store', 'analyse').statistics).toBe(1);
+  });
+});

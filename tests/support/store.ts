@@ -7,7 +7,12 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { closeDatabase, openInMemory, type Database } from '../../src/store/database.js';
+import {
+  closeDatabase,
+  openDatabase,
+  openInMemory,
+  type Database,
+} from '../../src/store/database.js';
 import { migrateToLatest } from '../../src/store/schema.js';
 
 const scratchDirs: string[] = [];
@@ -43,5 +48,22 @@ export function withStore<T>(work: (db: Database) => T): T {
     return work(db);
   } finally {
     closeDatabase(db);
+  }
+}
+
+/**
+ * The same, against a real file rather than memory. Anything that measures the
+ * store as a thing on disk needs one, and an in memory database reports a page
+ * count with no file behind it.
+ */
+export function withStoreFile<T>(work: (db: Database, path: string) => T): T {
+  const path = scratchStorePath();
+  const db = openDatabase(path);
+  migrateToLatest(db);
+  try {
+    return work(db, path);
+  } finally {
+    closeDatabase(db);
+    cleanScratch();
   }
 }
