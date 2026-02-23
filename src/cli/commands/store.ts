@@ -6,6 +6,8 @@
 
 import type { Command } from 'commander';
 import { analyse, compact, health } from '../../store/maintenance.js';
+import { importLarder, importPrices, renderImportReport } from '../../store/import.js';
+import { ruleViolation } from '../../core/errors.js';
 import { tableNames } from '../../store/database.js';
 import { appliedMigrations } from '../../store/migrate.js';
 import { MIGRATIONS, TARGET_SCHEMA_VERSION, storeVersion } from '../../store/schema.js';
@@ -15,6 +17,7 @@ import { backupIsCurrent, backupTo, readBackup } from '../../store/backup.js';
 import { seedDemoProperty } from '../../demo/property.js';
 import { countRows, exportSetup, importSetup, type SetupExport } from '../../store/transfer.js';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { codeArg } from '../args.js';
 
 export function registerStoreCommands(program: Command, makeContext: () => CliContext): void {
   const store = program.command('store').description('the property store file');
@@ -298,6 +301,59 @@ export function registerMaintenanceCommands(program: Command, makeContext: () =>
     .action(
       onStore(makeContext, (db, context) => {
         context.write(renderRecord({ statistics: analyse(db) }, { format: context.format }));
+      }),
+    );
+}
+
+export function registerImportCommands(program: Command, makeContext: () => CliContext): void {
+  const load = program.command('load').description('read a spreadsheet somebody sent over');
+
+  load
+    .command('prices')
+    .description('load a price book from a comma separated file')
+    .requiredOption('--book <code>', 'the price book to load into')
+    .requiredOption('--file <path>', 'the file to read')
+    .option('--dry-run', 'check the file and write nothing')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
+        const report = importPrices(
+          db,
+          context.requireProperty(),
+          codeArg(String(options.book ?? '')),
+          readFileSync(String(options.file ?? ''), 'utf8'),
+          { dryRun: options.dryRun === true },
+        );
+        context.write(context.format === 'json' ? renderJson(report) : renderImportReport(report));
+        if (report.problems.length > 0) {
+          throw ruleViolation(
+            'import.problems',
+            `${report.problems.length} row(s) would not load, so nothing was written`,
+          );
+        }
+      }),
+    );
+
+  load
+    .command('larder')
+    .description('load ingredients from a comma separated file')
+    .requiredOption('--file <path>', 'the file to read')
+    .option('--dry-run', 'check the file and write nothing')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
+        const report = importLarder(
+          db,
+          context.requireProperty(),
+          readFileSync(String(options.file ?? ''), 'utf8'),
+          context.now(),
+          { dryRun: options.dryRun === true },
+        );
+        context.write(context.format === 'json' ? renderJson(report) : renderImportReport(report));
+        if (report.problems.length > 0) {
+          throw ruleViolation(
+            'import.problems',
+            `${report.problems.length} row(s) would not load, so nothing was written`,
+          );
+        }
       }),
     );
 }

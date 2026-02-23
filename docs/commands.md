@@ -42,6 +42,29 @@ hand the free pages back to the filesystem
 
 refresh the statistics the query planner reads
 
+## `load`
+
+read a spreadsheet somebody sent over
+
+### `load prices`
+
+load a price book from a comma separated file
+
+| option | what it is |
+| --- | --- |
+| `--book <code>` | the price book to load into (required) |
+| `--file <path>` | the file to read (required) |
+| `--dry-run` | check the file and write nothing |
+
+### `load larder`
+
+load ingredients from a comma separated file
+
+| option | what it is |
+| --- | --- |
+| `--file <path>` | the file to read (required) |
+| `--dry-run` | check the file and write nothing |
+
 ## `backup`
 
 copies of the store
