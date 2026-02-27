@@ -1010,6 +1010,60 @@ turn a change order down
 | --- | --- |
 | `--id <id>` | the change order (required) |
 
+## `send`
+
+who gets the order, and who has said so
+
+### `send add`
+
+put somebody on the standing distribution list
+
+| option | what it is |
+| --- | --- |
+| `--to <name>` | the recipient (required) |
+| `--role <role>` | why they get it (required) |
+| `--channel <channel>` | email, print, board or hand (required) |
+
+### `send list`
+
+the standing distribution list
+
+| option | what it is |
+| --- | --- |
+| `--all` | include the ones who have been retired |
+
+### `send retire`
+
+take somebody off the list without losing what they were sent
+
+| option | what it is |
+| --- | --- |
+| `--to <name>` | the recipient (required) |
+
+### `send out`
+
+send one revision to the whole list
+
+| option | what it is |
+| --- | --- |
+| `--revision <id>` | the revision (required) |
+
+### `send ack`
+
+record that somebody acknowledged a delivery
+
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the delivery (required) |
+
+### `send standing`
+
+who has still not said they got it
+
+| option | what it is |
+| --- | --- |
+| `--revision <id>` | the revision (required) |
+
 ## `runsheet`
 
 the run of show template

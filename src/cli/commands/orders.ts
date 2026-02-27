@@ -4,6 +4,14 @@
  */
 
 import type { Command } from 'commander';
+import {
+  acknowledge,
+  addRecipient,
+  deliveryStanding,
+  listRecipients,
+  retireRecipient,
+  sendRevision,
+} from '../../orders/delivery.js';
 import { parseEntityId } from '../../core/ids.js';
 import { formatMoney, parseMoney } from '../../core/money.js';
 import { assembleOrder, renderOrder } from '../../orders/document.js';
@@ -25,8 +33,8 @@ import {
   raiseChangeOrder,
 } from '../../orders/changes.js';
 import { requireProperty } from '../../property/store.js';
-import { render, renderRecord } from '../output.js';
-import { entityArg } from '../args.js';
+import { columns, render, renderJson, renderRecord } from '../output.js';
+import { entityArg, wholeNumber } from '../args.js';
 import { onReadStore, onStore, type CliContext } from '../context.js';
 
 export function registerOrderCommands(program: Command, makeContext: () => CliContext): void {
@@ -285,6 +293,143 @@ export function registerChangeCommands(program: Command, makeContext: () => CliC
         );
         context.write(
           renderRecord({ id: declined.id, status: declined.status }, { format: context.format }),
+        );
+      }),
+    );
+}
+
+export function registerDeliveryCommands(program: Command, makeContext: () => CliContext): void {
+  const send = program.command('send').description('who gets the order, and who has said so');
+
+  send
+    .command('add')
+    .description('put somebody on the standing distribution list')
+    .requiredOption('--to <name>', 'the recipient')
+    .requiredOption('--role <role>', 'why they get it')
+    .requiredOption('--channel <channel>', 'email, print, board or hand')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
+        const person = addRecipient(db, context.requireProperty(), {
+          recipient: options.to ?? '',
+          role: options.role ?? '',
+          channel: options.channel ?? '',
+        });
+        context.write(
+          renderRecord(
+            { recipient: person.recipient, role: person.role, channel: person.channel },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
+
+  send
+    .command('list')
+    .description('the standing distribution list')
+    .option('--all', 'include the ones who have been retired')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
+        context.write(
+          render(
+            listRecipients(db, context.requireProperty(), {
+              activeOnly: options.all !== true,
+            }).map((person) => ({
+              recipient: person.recipient,
+              role: person.role,
+              channel: person.channel,
+              active: person.active,
+            })),
+            {
+              format: context.format,
+              empty: 'nobody is on the list',
+              columns: columns('recipient', 'role', 'channel', 'active'),
+            },
+          ),
+        );
+      }),
+    );
+
+  send
+    .command('retire')
+    .description('take somebody off the list without losing what they were sent')
+    .requiredOption('--to <name>', 'the recipient')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
+        const removed = retireRecipient(db, context.requireProperty(), options.to ?? '');
+        context.write(renderRecord({ retired: removed }, { format: context.format }));
+      }),
+    );
+
+  send
+    .command('out')
+    .description('send one revision to the whole list')
+    .requiredOption('--revision <id>', 'the revision')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
+        const sent = sendRevision(db, entityArg('beo', options.revision ?? ''), context.now());
+        context.write(
+          render(
+            sent.map((row) => ({
+              id: row.id,
+              recipient: row.recipient,
+              role: row.role,
+              channel: row.channel,
+            })),
+            {
+              format: context.format,
+              empty: 'nothing was sent',
+              columns: columns('id>', 'recipient', 'role', 'channel'),
+            },
+          ),
+        );
+      }),
+    );
+
+  send
+    .command('ack')
+    .description('record that somebody acknowledged a delivery')
+    .requiredOption('--id <id>', 'the delivery')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
+        const row = acknowledge(db, wholeNumber('delivery', options.id ?? ''), context.now());
+        context.write(
+          renderRecord(
+            { id: row.id, recipient: row.recipient, at: row.acknowledgedAt ?? '' },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
+
+  send
+    .command('standing')
+    .description('who has still not said they got it')
+    .requiredOption('--revision <id>', 'the revision')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const standing = deliveryStanding(db, entityArg('beo', options.revision ?? ''));
+        if (context.format === 'json') {
+          context.write(renderJson(standing));
+          return;
+        }
+        context.write(
+          [
+            `${standing.acknowledged} of ${standing.sent} acknowledged`,
+            '',
+            render(
+              standing.waiting.map((row) => ({
+                id: row.id,
+                recipient: row.recipient,
+                role: row.role,
+                sent: row.sentAt,
+              })),
+              {
+                format: context.format,
+                empty: standing.sent === 0 ? 'nothing has been sent' : 'everybody has acknowledged',
+                columns: columns('id>', 'recipient', 'role', 'sent'),
+              },
+            ),
+          ].join('\n'),
         );
       }),
     );
