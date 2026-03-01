@@ -14,7 +14,7 @@ import type { TimeOfDay, TimeZoneName } from '../core/clock.js';
 import type { CalendarDate } from '../core/calendar.js';
 import type { CatalogCode } from '../core/ids.js';
 
-export const SETUP_STYLES = [
+const SETUP_STYLES = [
   'ROUNDS-8',
   'ROUNDS-10',
   'ROUNDS-12',
@@ -29,18 +29,11 @@ export const SETUP_STYLES = [
 
 export type SetupStyle = (typeof SETUP_STYLES)[number];
 
-export const SERVICE_STYLES = [
-  'PLATED',
-  'BUFFET',
-  'FAMILY',
-  'STATIONS',
-  'RECEPTION',
-  'BOXED',
-] as const;
+const SERVICE_STYLES = ['PLATED', 'BUFFET', 'FAMILY', 'STATIONS', 'RECEPTION', 'BOXED'] as const;
 
 export type ServiceStyle = (typeof SERVICE_STYLES)[number];
 
-export const CALENDAR_KINDS = ['office', 'kitchen'] as const;
+const CALENDAR_KINDS = ['office', 'kitchen'] as const;
 
 export type CalendarKind = (typeof CALENDAR_KINDS)[number];
 
@@ -113,9 +106,4 @@ export function seatsPerTable(style: SetupStyle): number | undefined {
     default:
       return undefined;
   }
-}
-
-/** A seated style needs a place setting per cover, a standing one does not. */
-export function isSeatedStyle(style: SetupStyle): boolean {
-  return style !== 'RECEPTION';
 }

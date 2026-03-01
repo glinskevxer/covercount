@@ -22,6 +22,7 @@
     "coverage": "vitest run --coverage",
     "check": "bash scripts/check.sh",
     "check:pins": "node scripts/check-pins.mjs",
+    "check:exports": "node scripts/check-exports.mjs",
     "docs": "npm run build && node scripts/generate-docs.mjs",
     "docs:check": "npm run build && node scripts/generate-docs.mjs --check",
     "check:release": "node scripts/check-release.mjs"

@@ -157,7 +157,7 @@ function normaliseAllergens(values: readonly string[]): Allergen[] {
 }
 
 /** A substitute has to actually be safe for the guest it is for. */
-export function assertSubstituteWorks(
+function assertSubstituteWorks(
   db: Database,
   propertyCode: CatalogCode,
   substituteItemCode: CatalogCode,

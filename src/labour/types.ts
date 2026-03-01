@@ -28,7 +28,7 @@ export const ROLES = [
 export type Role = (typeof ROLES)[number];
 
 /** Roles counted against the number of servers rather than against covers. */
-export const SUPERVISORY_ROLES: readonly Role[] = ['CAPTAIN'];
+const SUPERVISORY_ROLES: readonly Role[] = ['CAPTAIN'];
 
 export interface StaffingRule {
   readonly propertyCode: CatalogCode;

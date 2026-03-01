@@ -24,7 +24,7 @@ import { invoiceTotals, requireInvoice } from './invoice.js';
 import type { ChargeCategory } from './types.js';
 import type { Database } from '../store/database.js';
 
-export const COMMISSION_BASES = ['FOOD-BEVERAGE', 'NET', 'GROSS'] as const;
+const COMMISSION_BASES = ['FOOD-BEVERAGE', 'NET', 'GROSS'] as const;
 
 export type CommissionBase = (typeof COMMISSION_BASES)[number];
 

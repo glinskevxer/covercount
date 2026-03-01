@@ -21,6 +21,9 @@ npm test -- --reporter=dot
 echo "--- pins"
 node scripts/check-pins.mjs
 
+echo "--- dead exports"
+node scripts/check-exports.mjs
+
 echo "--- release checks"
 node scripts/check-release.mjs
 

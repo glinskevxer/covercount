@@ -52,7 +52,7 @@ function requireColumns(rows: readonly Record<string, string>[], needed: readonl
   }
 }
 
-export const PRICE_COLUMNS = ['subject', 'code', 'from', 'price'] as const;
+const PRICE_COLUMNS = ['subject', 'code', 'from', 'price'] as const;
 
 /**
  * Load a price book. Every row is validated first, then the whole lot is
@@ -139,7 +139,7 @@ export function importPrices(
   return { read: rows.length, written: staged.length, problems: [], dryRun: false };
 }
 
-export const LARDER_COLUMNS = ['code', 'name', 'store', 'unit', 'pack'] as const;
+const LARDER_COLUMNS = ['code', 'name', 'store', 'unit', 'pack'] as const;
 
 /**
  * Load the larder. The same rule applies, with one addition: an ingredient

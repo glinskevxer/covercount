@@ -31,7 +31,7 @@ interface BookingRow {
   cancel_reason: string | null;
 }
 
-export function toBooking(row: BookingRow): Booking {
+function toBooking(row: BookingRow): Booking {
   return {
     id: parseEntityId('booking', row.id),
     propertyCode: catalogCode(row.property_code),

@@ -11,9 +11,8 @@
 
 import { DomainError } from './errors.js';
 
-export const DIMENSIONS = ['count', 'mass', 'volume'] as const;
-
-export type Dimension = (typeof DIMENSIONS)[number];
+/** The three things this kitchen measures. Nothing iterates them. */
+export type Dimension = 'count' | 'mass' | 'volume';
 
 export interface UnitInfo {
   readonly code: string;
@@ -120,12 +119,6 @@ export const UNITS = {
 export type UnitCode = keyof typeof UNITS;
 
 export const UNIT_CODES = Object.keys(UNITS) as UnitCode[];
-
-export const BASE_UNIT: Record<Dimension, UnitCode> = {
-  count: 'EA',
-  mass: 'G',
-  volume: 'ML',
-};
 
 export class UnitError extends DomainError {
   constructor(message: string) {

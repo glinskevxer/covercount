@@ -46,7 +46,7 @@ export function columns(...spec: readonly string[]): Column[] {
 
 export type OutputFormat = 'table' | 'json' | 'plain' | 'csv';
 
-export const OUTPUT_FORMATS: readonly OutputFormat[] = ['table', 'json', 'plain', 'csv'];
+const OUTPUT_FORMATS: readonly OutputFormat[] = ['table', 'json', 'plain', 'csv'];
 
 export function isOutputFormat(value: string): value is OutputFormat {
   return (OUTPUT_FORMATS as readonly string[]).includes(value);
@@ -122,7 +122,7 @@ export function renderPlain(rows: readonly Row[], columns?: readonly Column[]): 
  * Comma separated, with the header taken from the column list so a caller that
  * named its columns gets them in that order and nothing it did not ask for.
  */
-export function renderCsv(rows: readonly Row[], columns?: readonly Column[]): string {
+function renderCsv(rows: readonly Row[], columns?: readonly Column[]): string {
   const resolved = columnsFor(rows, columns);
   return toCsv(
     rows.map((row) => {

@@ -25,7 +25,7 @@ import { createTaxProfile } from '../billing/tax.js';
 import { createEquipment, setRequirement } from '../equipment/store.js';
 import { inTransaction, type Database } from '../store/database.js';
 
-export const DEMO_PROPERTY: CatalogCode = catalogCode('CANYON');
+const DEMO_PROPERTY: CatalogCode = catalogCode('CANYON');
 
 export interface DemoResult {
   readonly propertyCode: CatalogCode;

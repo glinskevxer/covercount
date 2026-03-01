@@ -52,7 +52,7 @@ export function migrationChecksum(migration: Migration): string {
   return hash.digest('hex').slice(0, 16);
 }
 
-export function ensureLedger(db: Database): void {
+function ensureLedger(db: Database): void {
   db.exec(LEDGER);
 }
 

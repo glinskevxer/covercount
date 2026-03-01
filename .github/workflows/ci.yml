@@ -117,6 +117,8 @@ jobs:
         run: npm audit --audit-level=high
       - name: every dependency is pinned
         run: node scripts/check-pins.mjs
+      - name: nothing is exported that nothing imports
+        run: node scripts/check-exports.mjs
       - name: the build is shippable
         run: |
           npm run build

@@ -17,7 +17,7 @@ export interface CurrencyInfo {
   readonly symbol: string;
 }
 
-export const CURRENCIES = {
+const CURRENCIES = {
   USD: { code: 'USD', exponent: 2, symbol: '$' },
   CAD: { code: 'CAD', exponent: 2, symbol: '$' },
   EUR: { code: 'EUR', exponent: 2, symbol: '€' },

@@ -25,7 +25,7 @@ export const CHARGE_CATEGORIES = [
 
 export type ChargeCategory = (typeof CHARGE_CATEGORIES)[number];
 
-export const CHARGE_SOURCES = [
+const CHARGE_SOURCES = [
   'MANUAL',
   'PACKAGE',
   'UPCHARGE',
@@ -37,11 +37,11 @@ export const CHARGE_SOURCES = [
 
 export type ChargeSource = (typeof CHARGE_SOURCES)[number];
 
-export const INVOICE_STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'VOID'] as const;
+const INVOICE_STATUSES = ['DRAFT', 'ISSUED', 'PAID', 'VOID'] as const;
 
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
-export const PAYMENT_KINDS = ['DEPOSIT', 'PAYMENT', 'REFUND', 'WRITE-OFF'] as const;
+const PAYMENT_KINDS = ['DEPOSIT', 'PAYMENT', 'REFUND', 'WRITE-OFF'] as const;
 
 export type PaymentKind = (typeof PAYMENT_KINDS)[number];
 

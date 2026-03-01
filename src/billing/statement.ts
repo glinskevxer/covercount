@@ -24,7 +24,7 @@ import type { Database } from '../store/database.js';
 
 export const DEFAULT_NET_DAYS = 30;
 
-export const AGE_BUCKETS = ['CURRENT', '1-30', '31-60', '61-90', 'OVER-90'] as const;
+const AGE_BUCKETS = ['CURRENT', '1-30', '31-60', '61-90', 'OVER-90'] as const;
 
 export type AgeBucket = (typeof AGE_BUCKETS)[number];
 

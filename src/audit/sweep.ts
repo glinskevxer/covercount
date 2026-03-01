@@ -34,9 +34,8 @@ import { productionVariance } from '../production/actuals.js';
 import { formatMoney } from '../core/money.js';
 import { foreignKeyCheck, type Database } from '../store/database.js';
 
-export const FINDING_LEVELS = ['error', 'warning'] as const;
-
-export type FindingLevel = (typeof FINDING_LEVELS)[number];
+/** Nothing iterates the levels, so they are a union rather than a list. */
+export type FindingLevel = 'error' | 'warning';
 
 export interface Finding {
   readonly level: FindingLevel;

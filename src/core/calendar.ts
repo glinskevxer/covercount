@@ -12,7 +12,7 @@ import { DomainError } from './errors.js';
 
 export type CalendarDate = string & { readonly __brand: 'CalendarDate' };
 
-export const WEEKDAY_NAMES = [
+const WEEKDAY_NAMES = [
   'Sunday',
   'Monday',
   'Tuesday',

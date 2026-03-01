@@ -19,7 +19,7 @@ import { requireProperty } from '../property/store.js';
 import { propertyOf, requireRevision } from './revisions.js';
 import { inTransaction, type Database } from '../store/database.js';
 
-export const DELIVERY_CHANNELS = ['EMAIL', 'PRINT', 'BOARD', 'HAND'] as const;
+const DELIVERY_CHANNELS = ['EMAIL', 'PRINT', 'BOARD', 'HAND'] as const;
 
 export type DeliveryChannel = (typeof DELIVERY_CHANNELS)[number];
 

@@ -37,7 +37,7 @@ export const STATIONS = [
 
 export type Station = (typeof STATIONS)[number];
 
-export const REQUISITION_STATUSES = ['DRAFT', 'ISSUED', 'PICKED', 'CANCELLED'] as const;
+const REQUISITION_STATUSES = ['DRAFT', 'ISSUED', 'PICKED', 'CANCELLED'] as const;
 
 export type RequisitionStatus = (typeof REQUISITION_STATUSES)[number];
 

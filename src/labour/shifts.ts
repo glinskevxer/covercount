@@ -35,7 +35,7 @@ interface ShiftRow {
   note: string;
 }
 
-export function toShift(row: ShiftRow, currency: Money['currency']): Shift {
+function toShift(row: ShiftRow, currency: Money['currency']): Shift {
   return {
     id: parseEntityId('shift', row.id),
     functionId: parseEntityId('functionSlot', row.function_id),
@@ -150,7 +150,7 @@ export function buildRoster(
   });
 }
 
-export function findShift(
+function findShift(
   db: Database,
   id: EntityId<'shift'>,
   currency: Money['currency'],
@@ -159,11 +159,7 @@ export function findShift(
   return row === undefined ? undefined : toShift(row, currency);
 }
 
-export function requireShift(
-  db: Database,
-  id: EntityId<'shift'>,
-  currency: Money['currency'],
-): Shift {
+function requireShift(db: Database, id: EntityId<'shift'>, currency: Money['currency']): Shift {
   const found = findShift(db, id, currency);
   if (found === undefined) {
     throw notFound('shift.missing', id, `shift ${id} is not on file`);

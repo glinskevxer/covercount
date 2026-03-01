@@ -16,7 +16,7 @@
 import { calendarDate, type CalendarDate } from '../core/calendar.js';
 import { invalidInput, isDomainError, notFound } from '../core/errors.js';
 import type { CatalogCode } from '../core/ids.js';
-import { money, subtractMoney, zeroMoney, type Money } from '../core/money.js';
+import { money, subtractMoney, type Money } from '../core/money.js';
 import { convertQuantity, type Quantity } from '../core/quantity.js';
 import { divideRound } from '../core/rounding.js';
 import { PPM, rate, type Rate } from '../core/rate.js';
@@ -206,11 +206,6 @@ export function marginOn(price: Money, cost: Money): Margin {
     marginRate: rate(divideRound(gross.amount * PPM, price.amount, 'half-up')),
     costRate: rate(divideRound(cost.amount * PPM, price.amount, 'half-up')),
   };
-}
-
-/** A zero cost in the property's currency, for a recipe with no lines. */
-export function noCost(db: Database, propertyCode: CatalogCode): Money {
-  return zeroMoney(requireProperty(db, propertyCode).currency);
 }
 
 /**

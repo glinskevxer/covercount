@@ -46,7 +46,7 @@ export interface BuildContextInput {
   readonly writeError?: (line: string) => void;
 }
 
-export const DEFAULT_STORE = 'covercount.db';
+const DEFAULT_STORE = 'covercount.db';
 
 export function buildContext(input: BuildContextInput): CliContext {
   const env = input.env ?? {};
@@ -83,7 +83,7 @@ export function buildContext(input: BuildContextInput): CliContext {
 }
 
 /** Open the store, run the work, and close it whatever happens. */
-export function withOpenStore<T>(
+function withOpenStore<T>(
   context: CliContext,
   work: (db: Database) => T,
   options: { readOnly?: boolean } = {},

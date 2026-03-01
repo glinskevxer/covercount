@@ -70,7 +70,7 @@ export const DIETS = [
 
 export type Diet = (typeof DIETS)[number];
 
-export const PRICE_SUBJECTS = ['ITEM', 'PACKAGE'] as const;
+const PRICE_SUBJECTS = ['ITEM', 'PACKAGE'] as const;
 
 export type PriceSubject = (typeof PRICE_SUBJECTS)[number];
 
