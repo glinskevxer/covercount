@@ -3,6 +3,7 @@
  */
 
 import type { Command } from 'commander';
+import { contentionFor, contentionOn, renderContention } from '../../equipment/contention.js';
 import { formatMoney } from '../../core/money.js';
 import { requireFunction } from '../../booking/functions.js';
 import { requireCovers } from '../../covers/guarantee.js';
@@ -18,8 +19,8 @@ import {
 } from '../../equipment/store.js';
 import { isSetupStyle } from '../../property/types.js';
 import { invalidInput } from '../../core/errors.js';
-import { columns, render, renderRecord } from '../output.js';
-import { entityArg, moneyArg, wholeNumber } from '../args.js';
+import { columns, render, renderJson, renderRecord } from '../output.js';
+import { codeArg, dateArg, entityArg, moneyArg, wholeNumber } from '../args.js';
 import { onReadStore, onStore, type CliContext } from '../context.js';
 
 function setupStyle(value: string) {
@@ -217,4 +218,89 @@ export function registerPullCommands(program: Command, makeContext: () => CliCon
         ),
       );
     });
+}
+
+export function registerContentionCommands(program: Command, makeContext: () => CliContext): void {
+  const cupboard = program
+    .command('cupboard')
+    .description('what the store cupboard can cover on a day');
+
+  cupboard
+    .command('day')
+    .description('peak demand against what the house owns')
+    .requiredOption('--date <date>', 'the date')
+    .option('--short', 'only the items it is short of')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
+        const day = contentionOn(
+          db,
+          context.requireProperty(),
+          dateArg(String(options.date ?? '')),
+        );
+        if (context.format === 'table' && options.short !== true) {
+          context.write(renderContention(day));
+          return;
+        }
+        const rows = options.short === true ? day.short : day.items;
+        context.write(
+          render(
+            rows.map((row) => ({
+              item: row.equipmentCode,
+              peak: row.peak,
+              owned: row.owned,
+              short: row.shortfall,
+              hire: formatMoney(row.hireCost),
+            })),
+            {
+              format: context.format,
+              empty: options.short === true ? 'the cupboard covers it' : 'nothing is pulled',
+              columns: columns('item', 'peak>', 'owned>', 'short>', 'hire>'),
+            },
+          ),
+        );
+      }),
+    );
+
+  cupboard
+    .command('item')
+    .description('one item across a day, and who wants it at the peak')
+    .requiredOption('--date <date>', 'the date')
+    .requiredOption('--code <code>', 'the item')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const found = contentionFor(
+          db,
+          context.requireProperty(),
+          dateArg(options.date ?? ''),
+          codeArg(options.code ?? ''),
+        );
+        if (context.format === 'json') {
+          context.write(renderJson(found));
+          return;
+        }
+        context.write(
+          [
+            renderRecord(
+              {
+                item: found.equipmentCode,
+                peak: found.peak,
+                owned: found.owned,
+                short: found.shortfall,
+                hire: formatMoney(found.hireCost),
+              },
+              { format: context.format },
+            ),
+            '',
+            render(
+              found.atPeak.map((row) => ({ function: row.name, wants: row.quantity })),
+              {
+                format: context.format,
+                empty: 'nobody wants it that day',
+                columns: columns('function', 'wants>'),
+              },
+            ),
+          ].join('\n'),
+        );
+      }),
+    );
 }

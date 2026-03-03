@@ -63,7 +63,11 @@ import {
   registerResumeCommands,
 } from './commands/reports.js';
 import { registerServeCommands } from './commands/serve.js';
-import { registerEquipmentCommands, registerPullCommands } from './commands/equipment.js';
+import {
+  registerContentionCommands,
+  registerEquipmentCommands,
+  registerPullCommands,
+} from './commands/equipment.js';
 import { registerAuditCommands } from './commands/audit.js';
 import {
   registerBarBillingCommands,
@@ -153,6 +157,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerServeCommands(program, makeContext);
   registerEquipmentCommands(program, makeContext);
   registerPullCommands(program, makeContext);
+  registerContentionCommands(program, makeContext);
   registerAuditCommands(program, makeContext);
   registerBarTierCommands(program, makeContext);
   registerBarCommands(program, makeContext);

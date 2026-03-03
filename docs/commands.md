@@ -1330,6 +1330,28 @@ how many tables a setup needs for a cover count
 | `--style <style>` | the setup style (required) |
 | `--covers <count>` | the covers (required) |
 
+## `cupboard`
+
+what the store cupboard can cover on a day
+
+### `cupboard day`
+
+peak demand against what the house owns
+
+| option | what it is |
+| --- | --- |
+| `--date <date>` | the date (required) |
+| `--short` | only the items it is short of |
+
+### `cupboard item`
+
+one item across a day, and who wants it at the peak
+
+| option | what it is |
+| --- | --- |
+| `--date <date>` | the date (required) |
+| `--code <code>` | the item (required) |
+
 ## `audit`
 
 look for what has quietly stopped adding up
