@@ -263,3 +263,71 @@ describe('the routes added for stock, money and the crew', () => {
     expect(status).toBe(404);
   });
 });
+
+describe('conditional requests', () => {
+  it('hands back a tag and takes it back on the next request', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    const first = await fetch(`${base}/properties/CANYON/board?date=2025-04-18`);
+    const tag = first.headers.get('etag');
+    expect(first.status).toBe(200);
+    expect(tag).toMatch(/^W\/"[0-9a-f]{16}"$/);
+
+    const second = await fetch(`${base}/properties/CANYON/board?date=2025-04-18`, {
+      headers: { 'if-none-match': tag ?? '' },
+    });
+    expect(second.status).toBe(304);
+    expect(second.headers.get('etag')).toBe(tag);
+    expect(await second.text()).toBe('');
+  });
+
+  it('answers in full when the answer has moved', async () => {
+    const { cli, slot } = seeded();
+    const base = await start(cli.storePath);
+    const first = await fetch(`${base}/functions/${slot}/covers`);
+    const tag = first.headers.get('etag') ?? '';
+
+    cli.run('covers', 'guarantee', '--function', slot, '--covers', '190');
+    const second = await fetch(`${base}/functions/${slot}/covers`, {
+      headers: { 'if-none-match': tag },
+    });
+    expect(second.status).toBe(200);
+    expect(second.headers.get('etag')).not.toBe(tag);
+    expect((await second.json()) as { guaranteed: number }).toMatchObject({ guaranteed: 190 });
+  });
+
+  it('takes an asterisk as a match', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    const response = await fetch(`${base}/health`, { headers: { 'if-none-match': '*' } });
+    expect(response.status).toBe(304);
+  });
+
+  it('takes a list of tags and matches any of them', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    const first = await fetch(`${base}/health`);
+    const tag = first.headers.get('etag') ?? '';
+    const second = await fetch(`${base}/health`, {
+      headers: { 'if-none-match': `W/"0000000000000000", ${tag}` },
+    });
+    expect(second.status).toBe(304);
+  });
+
+  it('ignores a tag that does not match', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    const response = await fetch(`${base}/health`, {
+      headers: { 'if-none-match': 'W/"0000000000000000"' },
+    });
+    expect(response.status).toBe(200);
+  });
+
+  it('puts no tag on a refusal', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    const response = await fetch(`${base}/bookings/BK-2025-9999`);
+    expect(response.status).toBe(404);
+    expect(response.headers.get('etag')).toBeNull();
+  });
+});
