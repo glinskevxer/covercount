@@ -34,4 +34,10 @@ echo "--- the built cli answers"
 node dist/src/cli/main.js --version >/dev/null
 node dist/src/cli/main.js store migrations >/dev/null
 
+echo "--- the hot reads still seek"
+plans_store="$(mktemp -d)/plans.covercount.db"
+node dist/src/cli/main.js --store "$plans_store" store init >/dev/null
+node dist/src/cli/main.js --store "$plans_store" store plans
+
+
 echo "all green"

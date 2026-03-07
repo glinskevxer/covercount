@@ -42,6 +42,10 @@ hand the free pages back to the filesystem
 
 refresh the statistics the query planner reads
 
+### `store plans`
+
+whether the reads that run on every screen still seek
+
 ## `load`
 
 read a spreadsheet somebody sent over

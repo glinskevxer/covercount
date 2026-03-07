@@ -6,6 +6,7 @@
 
 import type { Command } from 'commander';
 import { analyse, compact, health } from '../../store/maintenance.js';
+import { HOT_QUERIES, planProblems, renderPlan } from '../../store/plans.js';
 import { importLarder, importPrices, renderImportReport } from '../../store/import.js';
 import { ruleViolation } from '../../core/errors.js';
 import { tableNames } from '../../store/database.js';
@@ -354,6 +355,38 @@ export function registerImportCommands(program: Command, makeContext: () => CliC
             `${report.problems.length} row(s) would not load, so nothing was written`,
           );
         }
+      }),
+    );
+}
+
+export function registerPlanCommands(program: Command, makeContext: () => CliContext): void {
+  const store = program.commands.find((command) => command.name() === 'store');
+  if (store === undefined) {
+    throw new Error('the store command has to be registered before its plan commands');
+  }
+
+  store
+    .command('plans')
+    .description('whether the reads that run on every screen still seek')
+    .action(
+      onReadStore(makeContext, (db, context) => {
+        const problems = planProblems(db);
+        if (context.format === 'json') {
+          context.write(renderJson(problems));
+          return;
+        }
+        if (problems.length === 0) {
+          context.write(`${HOT_QUERIES.length} hot read(s), none of them scanning`);
+          return;
+        }
+        context.write(
+          problems
+            .map(
+              (problem) =>
+                `${problem.name} scans ${problem.scanned.join(', ')}\n${renderPlan(problem.plan)}`,
+            )
+            .join('\n\n'),
+        );
       }),
     );
 }
