@@ -59,6 +59,7 @@ import {
 } from './commands/orders.js';
 import { registerTemplateCommands, registerTimelineCommands } from './commands/timeline.js';
 import {
+  registerDaySheetCommands,
   registerForecastCommands,
   registerReportCommands,
   registerResumeCommands,
@@ -156,6 +157,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerReportCommands(program, makeContext);
   registerResumeCommands(program, makeContext);
   registerForecastCommands(program, makeContext);
+  registerDaySheetCommands(program, makeContext);
   registerServeCommands(program, makeContext);
   registerEquipmentCommands(program, makeContext);
   registerPullCommands(program, makeContext);

@@ -6,6 +6,7 @@
 
 import type { Command } from 'commander';
 import { busyDays, forecast, renderForecast } from '../../reports/forecast.js';
+import { daySheet, renderDaySheet } from '../../reports/daysheet.js';
 import { formatMoney } from '../../core/money.js';
 import { calendarDate } from '../../core/calendar.js';
 import {
@@ -24,7 +25,7 @@ import {
   staffingSheet,
 } from '../../reports/house.js';
 import { conferenceResume, renderResume } from '../../reports/resume.js';
-import { columns, render, renderRecord } from '../output.js';
+import { columns, render, renderJson, renderRecord } from '../output.js';
 import { dateArg, entityArg } from '../args.js';
 import { onReadStore, type CliContext } from '../context.js';
 
@@ -243,6 +244,43 @@ export function registerForecastCommands(program: Command, makeContext: () => Cl
             { format: context.format },
           ),
         );
+      }),
+    );
+}
+
+export function registerDaySheetCommands(program: Command, makeContext: () => CliContext): void {
+  program
+    .command('today')
+    .description('the one page somebody reads at seven in the morning')
+    .requiredOption('--date <date>', 'the date')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const sheet = daySheet(db, context.requireProperty(), dateArg(options.date ?? ''));
+        if (context.format === 'json') {
+          context.write(renderJson(sheet));
+          return;
+        }
+        if (context.format === 'csv') {
+          context.write(
+            render(
+              sheet.functions.map((row) => ({
+                function: row.functionId,
+                name: row.name,
+                room: row.room,
+                covers: row.covers,
+                guaranteed: row.guaranteed,
+                crew: row.heads,
+              })),
+              {
+                format: context.format,
+                empty: 'nothing on the books',
+                columns: columns('function', 'name', 'room', 'covers>', 'guaranteed', 'crew>'),
+              },
+            ),
+          );
+          return;
+        }
+        context.write(renderDaySheet(sheet));
       }),
     );
 }

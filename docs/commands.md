@@ -1246,6 +1246,18 @@ the totals across a range, without the daily detail
 | `--from <date>` | the first date (required) |
 | `--to <date>` | the last date (required) |
 
+## `today`
+
+the one page somebody reads at seven in the morning
+
+### `today`
+
+the one page somebody reads at seven in the morning
+
+| option | what it is |
+| --- | --- |
+| `--date <date>` | the date (required) |
+
 ## `serve`
 
 the read only http service
