@@ -427,6 +427,58 @@ what this booking owes if it walks on a date
 | `--booking <id>` | the booking (required) |
 | `--on <date>` | the date notice is given (required) |
 
+## `meet`
+
+tastings, site visits and the pre con
+
+### `meet book`
+
+put an appointment in the diary
+
+| option | what it is |
+| --- | --- |
+| `--booking <id>` | the booking (required) |
+| `--kind <kind>` | tasting, site-visit, pre-con or planning (required) |
+| `--date <date>` | the date (required) |
+| `--start <time>` | start time as HH:MM (required) |
+| `--end <time>` | end time as HH:MM (required) |
+| `--room <code>` | the room, if it needs one |
+| `--who <names>` | who is coming |
+| `--note <text>` | anything worth remembering |
+
+### `meet list`
+
+every appointment on a booking
+
+| option | what it is |
+| --- | --- |
+| `--booking <id>` | the booking (required) |
+
+### `meet outcome`
+
+write down what came out of it
+
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the appointment (required) |
+| `--said <text>` | what was decided (required) |
+
+### `meet drop`
+
+take an appointment out of the diary
+
+| option | what it is |
+| --- | --- |
+| `--id <id>` | the appointment (required) |
+
+### `meet window`
+
+whether a tasting still changes anything
+
+| option | what it is |
+| --- | --- |
+| `--booking <id>` | the booking (required) |
+
 ## `deal`
 
 changing and advancing a booking

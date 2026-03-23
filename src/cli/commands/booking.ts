@@ -33,10 +33,17 @@ import {
   removeCancellationBand,
   setCancellationBand,
 } from '../../booking/damages.js';
+import {
+  bookAppointment,
+  cancelAppointment,
+  listAppointments,
+  recordOutcome,
+  tastingWindow,
+} from '../../booking/appointments.js';
 import { formatRate } from '../../core/rate.js';
 import { formatMoney } from '../../core/money.js';
 import { columns, render, renderRecord } from '../output.js';
-import { dateArg, entityArg, percentToPpm, wholeNumber } from '../args.js';
+import { blockMinute, codeArg, dateArg, entityArg, percentToPpm, wholeNumber } from '../args.js';
 import { onReadStore, onStore, type CliContext } from '../context.js';
 
 export function registerAccountCommands(program: Command, makeContext: () => CliContext): void {
@@ -462,6 +469,131 @@ export function registerDamagesCommands(program: Command, makeContext: () => Cli
               empty: 'nothing left to cancel',
               columns: columns('function', 'date', 'out>', 'band>', 'contracted>', 'owed>'),
             },
+          ),
+        );
+      }),
+    );
+}
+
+export function registerAppointmentCommands(program: Command, makeContext: () => CliContext): void {
+  const meet = program.command('meet').description('tastings, site visits and the pre con');
+
+  meet
+    .command('book')
+    .description('put an appointment in the diary')
+    .requiredOption('--booking <id>', 'the booking')
+    .requiredOption('--kind <kind>', 'tasting, site-visit, pre-con or planning')
+    .requiredOption('--date <date>', 'the date')
+    .requiredOption('--start <time>', 'start time as HH:MM')
+    .requiredOption('--end <time>', 'end time as HH:MM')
+    .option('--room <code>', 'the room, if it needs one')
+    .option('--who <names>', 'who is coming')
+    .option('--note <text>', 'anything worth remembering')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
+        const appointment = bookAppointment(
+          db,
+          entityArg('booking', options.booking ?? ''),
+          {
+            kind: options.kind ?? '',
+            onDate: dateArg(options.date ?? ''),
+            startMinute: blockMinute('start', options.start ?? ''),
+            endMinute: blockMinute('end', options.end ?? ''),
+            ...(options.room === undefined ? {} : { spaceCode: codeArg(options.room) }),
+            attendees: options.who ?? '',
+            note: options.note ?? '',
+          },
+          context.now(),
+        );
+        context.write(
+          renderRecord(
+            {
+              id: appointment.id,
+              kind: appointment.kind,
+              date: appointment.onDate,
+              room: appointment.spaceCode ?? '',
+              who: appointment.attendees,
+            },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
+
+  meet
+    .command('list')
+    .description('every appointment on a booking')
+    .requiredOption('--booking <id>', 'the booking')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        context.write(
+          render(
+            listAppointments(db, entityArg('booking', options.booking ?? '')).map((row) => ({
+              id: row.id,
+              kind: row.kind,
+              date: row.onDate,
+              room: row.spaceCode ?? '',
+              who: row.attendees,
+              outcome: row.outcome ?? '',
+            })),
+            {
+              format: context.format,
+              empty: 'nothing is in the diary for that booking',
+              columns: columns('id>', 'kind', 'date', 'room', 'who', 'outcome'),
+            },
+          ),
+        );
+      }),
+    );
+
+  meet
+    .command('outcome')
+    .description('write down what came out of it')
+    .requiredOption('--id <id>', 'the appointment')
+    .requiredOption('--said <text>', 'what was decided')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
+        const appointment = recordOutcome(
+          db,
+          wholeNumber('appointment', options.id ?? ''),
+          options.said ?? '',
+        );
+        context.write(
+          renderRecord(
+            { id: appointment.id, outcome: appointment.outcome ?? '' },
+            { format: context.format },
+          ),
+        );
+      }),
+    );
+
+  meet
+    .command('drop')
+    .description('take an appointment out of the diary')
+    .requiredOption('--id <id>', 'the appointment')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string>) => {
+        const removed = cancelAppointment(db, wholeNumber('appointment', options.id ?? ''));
+        context.write(renderRecord({ cancelled: removed }, { format: context.format }));
+      }),
+    );
+
+  meet
+    .command('window')
+    .description('whether a tasting still changes anything')
+    .requiredOption('--booking <id>', 'the booking')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const window = tastingWindow(db, entityArg('booking', options.booking ?? ''));
+        context.write(
+          renderRecord(
+            {
+              firstService: window.firstService,
+              closesOn: window.closesOn,
+              booked: window.booked.length,
+              tooLate: window.tooLate.length,
+            },
+            { format: context.format },
           ),
         );
       }),
