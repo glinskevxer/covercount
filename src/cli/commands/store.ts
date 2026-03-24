@@ -7,6 +7,7 @@
 import type { Command } from 'commander';
 import { analyse, compact, health } from '../../store/maintenance.js';
 import { HOT_QUERIES, planProblems, renderPlan } from '../../store/plans.js';
+import { catalogue, collectCodes } from '../../core/catalogue.js';
 import { importLarder, importPrices, renderImportReport } from '../../store/import.js';
 import { ruleViolation } from '../../core/errors.js';
 import { tableNames } from '../../store/database.js';
@@ -389,4 +390,31 @@ export function registerPlanCommands(program: Command, makeContext: () => CliCon
         );
       }),
     );
+}
+
+export function registerCatalogueCommands(program: Command, makeContext: () => CliContext): void {
+  program
+    .command('codes')
+    .description('every refusal the domain can raise, and what kind it is')
+    .option('--area <area>', 'narrow to one area, like covers or billing')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      const listed = catalogue(collectCodes('src')).filter(
+        (entry) => options.area === undefined || entry.area === options.area.trim().toLowerCase(),
+      );
+      context.write(
+        render(
+          listed.map((entry) => ({
+            code: entry.code,
+            kind: entry.kind,
+            raisedIn: entry.raisedIn,
+          })),
+          {
+            format: context.format,
+            empty: 'nothing raises a code in that area',
+            columns: columns('code', 'kind', 'raisedIn'),
+          },
+        ),
+      );
+    });
 }

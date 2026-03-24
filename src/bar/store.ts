@@ -352,7 +352,7 @@ export function barCharge(db: Database, functionId: EntityId<'functionSlot'>): B
   }
 
   if (bar.tierCode === undefined) {
-    throw conflict('bar.tier', `${functionId} is a package bar with no tier on it`, functionId);
+    throw conflict('bar.untiered', `${functionId} is a package bar with no tier on it`, functionId);
   }
   const tier = requireBarTier(db, slot.propertyCode, bar.tierCode);
   const covers = billedCovers(requireCovers(db, functionId));

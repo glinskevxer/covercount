@@ -116,7 +116,7 @@ export function createItem(
   }
   const soldBy = (input.soldBy ?? 'PERSON').trim().toUpperCase();
   if (!isSoldBy(soldBy)) {
-    throw invalidInput('item.soldBy', `${input.soldBy} is not a unit of sale`);
+    throw invalidInput('item.sold-by', `${input.soldBy} is not a unit of sale`);
   }
 
   const allergens = normaliseAllergens(input.allergens ?? []);

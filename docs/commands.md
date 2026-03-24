@@ -69,6 +69,18 @@ load ingredients from a comma separated file
 | `--file <path>` | the file to read (required) |
 | `--dry-run` | check the file and write nothing |
 
+## `codes`
+
+every refusal the domain can raise, and what kind it is
+
+### `codes`
+
+every refusal the domain can raise, and what kind it is
+
+| option | what it is |
+| --- | --- |
+| `--area <area>` | narrow to one area, like covers or billing |
+
 ## `backup`
 
 copies of the store

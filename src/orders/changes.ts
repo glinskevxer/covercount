@@ -113,7 +113,7 @@ export function raiseChangeOrder(
   }
   if (fee > 0 && !afterCutoff) {
     throw ruleViolation(
-      'change.fee',
+      'change.fee-early',
       'a change raised before the guarantee closed cannot carry a late fee',
     );
   }

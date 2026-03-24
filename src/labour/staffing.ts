@@ -242,7 +242,11 @@ export function requireLabourRate(
 ): Money {
   const found = findLabourRate(db, propertyCode, role, on);
   if (found === undefined) {
-    throw notFound('labour.rate', role, `${propertyCode} has no ${role} rate in force on ${on}`);
+    throw notFound(
+      'labour.rate-missing',
+      role,
+      `${propertyCode} has no ${role} rate in force on ${on}`,
+    );
   }
   return found;
 }

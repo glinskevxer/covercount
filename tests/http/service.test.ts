@@ -122,7 +122,7 @@ describe('the service over a socket', () => {
     const base = await start(cli.storePath);
     const { status, body } = await get(base, '/nowhere');
     expect(status).toBe(404);
-    expect((body as { error: string }).error).toBe('http.route');
+    expect((body as { error: string }).error).toBe('http.path');
   });
 
   it('answers 404 for a record that is not on file', async () => {

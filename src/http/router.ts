@@ -87,7 +87,7 @@ export class Router<T> {
     const parsed = new URL(url, 'http://covercount.invalid');
     const found = this.match(parsed.pathname);
     if (found === undefined) {
-      throw notFound('http.route', parsed.pathname, `nothing is served at ${parsed.pathname}`);
+      throw notFound('http.path', parsed.pathname, `nothing is served at ${parsed.pathname}`);
     }
     return found.route.handler({ params: found.params, query: parsed.searchParams }, context);
   }

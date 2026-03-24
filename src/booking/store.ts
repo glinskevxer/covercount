@@ -65,10 +65,10 @@ export function createBooking(
   requireProperty(db, propertyCode);
   const postAs = input.postAs.trim();
   if (postAs.length === 0) {
-    throw invalidInput('booking.postAs', 'a booking needs a name for the reader board');
+    throw invalidInput('booking.post-as', 'a booking needs a name for the reader board');
   }
   if (postAs.length > 60) {
-    throw invalidInput('booking.postAs', 'the reader board takes sixty characters, no more');
+    throw invalidInput('booking.post-as', 'the reader board takes sixty characters, no more');
   }
   const arrival = calendarDate(input.arrivalDate);
   const departure = calendarDate(input.departureDate);
@@ -188,10 +188,10 @@ export function updateBooking(
 
   const postAs = input.postAs === undefined ? booking.postAs : input.postAs.trim();
   if (postAs.length === 0) {
-    throw invalidInput('booking.postAs', 'a booking needs a name for the reader board');
+    throw invalidInput('booking.post-as', 'a booking needs a name for the reader board');
   }
   if (postAs.length > 60) {
-    throw invalidInput('booking.postAs', 'the reader board takes sixty characters, no more');
+    throw invalidInput('booking.post-as', 'the reader board takes sixty characters, no more');
   }
 
   const arrival =
