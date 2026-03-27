@@ -148,18 +148,7 @@ describe('covercount bar', () => {
 
   it('refuses a bottle count on a package bar', () => {
     const { cli, slot } = seeded();
-    cli.run(
-      'bar',
-      'set',
-      '--function',
-      slot,
-      '--kind',
-      'PACKAGE',
-      '--tier',
-      'HOUSE',
-      '--hours',
-      '4',
-    );
+    cli.run('bar', 'set', '--function', slot, '--kind', 'CASH', '--hours', '4');
     const result = cli.run(
       'bar',
       'pour',
@@ -175,7 +164,7 @@ describe('covercount bar', () => {
       '42.00',
     );
     expect(result.code).toBe(1);
-    expect(result.err).toContain('nobody counts the bottles');
+    expect(result.err).toContain("not the house's to count");
   });
 
   it('says so when a function has no bar on it', () => {

@@ -77,6 +77,7 @@ import {
   registerBarBillingCommands,
   registerBarCommands,
   registerBarTierCommands,
+  registerReconcileCommands,
 } from './commands/bar.js';
 import {
   registerKitchenCommands,
@@ -169,6 +170,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerAuditCommands(program, makeContext);
   registerBarTierCommands(program, makeContext);
   registerBarCommands(program, makeContext);
+  registerReconcileCommands(program, makeContext);
   registerBarBillingCommands(program, makeContext);
   registerSplitCommands(program, makeContext);
   registerFactorCommands(program, makeContext);

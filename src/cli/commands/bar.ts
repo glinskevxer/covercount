@@ -4,6 +4,7 @@
  */
 
 import type { Command } from 'commander';
+import { renderReconciliation, requireReconciliation } from '../../bar/reconcile.js';
 import { formatMoney } from '../../core/money.js';
 import {
   barCharge,
@@ -208,6 +209,42 @@ export function registerBarBillingCommands(program: Command, makeContext: () => 
               total: formatMoney(row.unit),
             })),
             { format: context.format, empty: 'that bar charges the client nothing' },
+          ),
+        );
+      }),
+    );
+}
+
+export function registerReconcileCommands(program: Command, makeContext: () => CliContext): void {
+  const bar = program.commands.find((command) => command.name() === 'bar');
+  if (bar === undefined) {
+    throw new Error('the bar command has to be registered before its reconciliation');
+  }
+
+  bar
+    .command('reconcile')
+    .description('which way of selling the bar turned out to be right')
+    .requiredOption('--function <id>', 'the function')
+    .action(
+      onReadStore(makeContext, (db, context, options: Record<string, string>) => {
+        const found = requireReconciliation(db, entityArg('functionSlot', options.function ?? ''));
+        if (context.format === 'table') {
+          context.write(renderReconciliation(found));
+          return;
+        }
+        context.write(
+          renderRecord(
+            {
+              kind: found.kind,
+              covers: found.covers,
+              hours: found.hours,
+              billed: formatMoney(found.billed),
+              onConsumption: formatMoney(found.onConsumption),
+              onPackage: found.onPackage === undefined ? '' : formatMoney(found.onPackage),
+              bottles: found.bottles,
+              better: found.betterForTheHouse,
+            },
+            { format: context.format },
           ),
         );
       }),

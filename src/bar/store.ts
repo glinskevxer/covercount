@@ -232,10 +232,15 @@ export function recordPour(
 ): Pour {
   const slot = requireFunction(db, functionId);
   const bar = requireBar(db, functionId);
-  if (bar.kind !== 'CONSUMPTION') {
+  // A cash bar is the guests' money, not the house's, so counting the house's
+  // bottles against it says nothing. A package bar is a different matter: the
+  // liquor still came out of the cellar, and the count is the only way to know
+  // whether the tier was priced anywhere near right. So the count is taken on
+  // a package bar and simply not billed.
+  if (bar.kind === 'CASH') {
     throw conflict(
       'bar.notconsumption',
-      `${functionId} is a ${bar.kind.toLowerCase()} bar, so nobody counts the bottles`,
+      `${functionId} is a cash bar, so the bottles are not the house's to count`,
       functionId,
     );
   }

@@ -175,7 +175,7 @@ describe('counting a consumption bar', () => {
   it('refuses a count on a bar that is not a consumption one', () => {
     withStore((db) => {
       const slot = withTiers(db);
-      setBar(db, slot.id, { kind: 'PACKAGE', tierCode: 'HOUSE', hours: 4 });
+      setBar(db, slot.id, { kind: 'CASH', hours: 4 });
       expect(() =>
         recordPour(db, slot.id, {
           itemCode: 'HOUSE-RED',
@@ -183,7 +183,7 @@ describe('counting a consumption bar', () => {
           closingTenths: 0,
           unitMinor: 4200,
         }),
-      ).toThrow(/so nobody counts the bottles/);
+      ).toThrow(/not the house's to count/);
     });
   });
 

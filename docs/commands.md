@@ -1517,6 +1517,14 @@ every bottle counted on a function
 | --- | --- |
 | `--function <id>` | the function (required) |
 
+### `bar reconcile`
+
+which way of selling the bar turned out to be right
+
+| option | what it is |
+| --- | --- |
+| `--function <id>` | the function (required) |
+
 ## `barbill`
 
 putting the bar on the invoice
