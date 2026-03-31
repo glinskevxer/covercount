@@ -81,6 +81,22 @@ every refusal the domain can raise, and what kind it is
 | --- | --- |
 | `--area <area>` | narrow to one area, like covers or billing |
 
+## `season`
+
+roll a whole property onto next season s numbers
+
+### `season`
+
+roll a whole property onto next season s numbers
+
+| option | what it is |
+| --- | --- |
+| `--from <date>` | the date the current numbers are read on (required) |
+| `--to <date>` | the date the new ones take effect (required) |
+| `--uplift <percent>` | how far the numbers move, negative to cut (required) |
+| `--skip <books>` | comma separated books to leave alone |
+| `--dry-run` | work it out and write nothing |
+
 ## `backup`
 
 copies of the store

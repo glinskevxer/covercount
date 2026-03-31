@@ -8,6 +8,8 @@ import type { Command } from 'commander';
 import { analyse, compact, health } from '../../store/maintenance.js';
 import { HOT_QUERIES, planProblems, renderPlan } from '../../store/plans.js';
 import { catalogue, collectCodes } from '../../core/catalogue.js';
+import { renderRoll, rollSeason } from '../../store/season.js';
+import { rate } from '../../core/rate.js';
 import { importLarder, importPrices, renderImportReport } from '../../store/import.js';
 import { ruleViolation } from '../../core/errors.js';
 import { tableNames } from '../../store/database.js';
@@ -19,7 +21,7 @@ import { backupIsCurrent, backupTo, readBackup } from '../../store/backup.js';
 import { seedDemoProperty } from '../../demo/property.js';
 import { countRows, exportSetup, importSetup, type SetupExport } from '../../store/transfer.js';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { codeArg } from '../args.js';
+import { codeArg, dateArg, listArg, percentToPpm } from '../args.js';
 
 export function registerStoreCommands(program: Command, makeContext: () => CliContext): void {
   const store = program.command('store').description('the property store file');
@@ -417,4 +419,49 @@ export function registerCatalogueCommands(program: Command, makeContext: () => C
         ),
       );
     });
+}
+
+export function registerSeasonCommands(program: Command, makeContext: () => CliContext): void {
+  program
+    .command('season')
+    .description('roll a whole property onto next season s numbers')
+    .requiredOption('--from <date>', 'the date the current numbers are read on')
+    .requiredOption('--to <date>', 'the date the new ones take effect')
+    .requiredOption('--uplift <percent>', 'how far the numbers move, negative to cut')
+    .option('--skip <books>', 'comma separated books to leave alone')
+    .option('--dry-run', 'work it out and write nothing')
+    .action(
+      onStore(makeContext, (db, context, options: Record<string, string | boolean>) => {
+        const roll = rollSeason(
+          db,
+          context.requireProperty(),
+          dateArg(String(options.from ?? '')),
+          dateArg(String(options.to ?? '')),
+          rate(percentToPpm('uplift', String(options.uplift ?? ''))),
+          {
+            dryRun: options.dryRun === true,
+            ...(typeof options.skip === 'string' ? { skipBooks: listArg(options.skip) } : {}),
+          },
+        );
+        if (context.format === 'table') {
+          context.write(renderRoll(roll));
+          return;
+        }
+        context.write(
+          render(
+            roll.lines.map((line) => ({
+              what: line.what,
+              subject: line.subject,
+              from: line.from.amount,
+              to: line.to.amount,
+            })),
+            {
+              format: context.format,
+              empty: 'there is nothing in force on that date to roll',
+              columns: columns('what', 'subject', 'from>', 'to>'),
+            },
+          ),
+        );
+      }),
+    );
 }
