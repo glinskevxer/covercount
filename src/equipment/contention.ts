@@ -21,6 +21,7 @@ import { requireProperty } from '../property/store.js';
 import { functionsOnDate, occupiedWindow, windowsOverlap } from '../booking/diary.js';
 import { holdsSpace } from '../booking/types.js';
 import { listEquipment, requireEquipment } from './store.js';
+import { padLeft, padRight, row, sheet, subRow } from '../reports/layout.js';
 import type { Database } from '../store/database.js';
 
 export interface Booked {
@@ -170,25 +171,24 @@ export function contentionOn(
 }
 
 export function renderContention(day: DayContention): string {
-  const lines: string[] = [];
-  lines.push(`${day.propertyCode} equipment on ${day.serviceDate}`);
-  if (day.items.length === 0) {
-    lines.push('');
-    lines.push('nothing is pulled that day');
-    return lines.join('\n');
-  }
-  lines.push(`${day.short.length} item(s) short`);
-  lines.push('');
-  for (const row of day.items) {
-    const mark = row.shortfall > 0 ? `short ${row.shortfall}` : 'covered';
-    lines.push(
-      `  ${row.equipmentCode.padEnd(14)} peak ${String(row.peak).padStart(4)} of ${String(row.owned).padStart(4)}  ${mark}`,
-    );
-    if (row.shortfall > 0) {
-      for (const booked of row.atPeak) {
-        lines.push(`      ${booked.name} wants ${booked.quantity}`);
-      }
-    }
-  }
-  return lines.join('\n');
+  return sheet({
+    heading: `${day.propertyCode} equipment on ${day.serviceDate}`,
+    summary: day.items.length === 0 ? [] : [`${day.short.length} item(s) short`],
+    sections: [
+      {
+        title: '',
+        rows: day.items.flatMap((item) => [
+          row(
+            padRight(item.equipmentCode, 14),
+            ` peak ${padLeft(item.peak, 4)} of ${padLeft(item.owned, 4)}`,
+            `  ${item.shortfall > 0 ? `short ${item.shortfall}` : 'covered'}`,
+          ),
+          ...(item.shortfall > 0
+            ? item.atPeak.map((booked) => subRow(`${booked.name} wants ${booked.quantity}`))
+            : []),
+        ]),
+      },
+    ],
+    whenBare: 'nothing is pulled that day',
+  });
 }

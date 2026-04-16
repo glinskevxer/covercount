@@ -22,6 +22,7 @@ import { requireProperty } from '../property/store.js';
 import { requireFunction } from '../booking/functions.js';
 import { ingredientDemandForFunctions } from './explode.js';
 import { orderLine, type OrderLine } from './stock.js';
+import { padLeft, padRight, row, sheet } from '../reports/layout.js';
 import type { Database } from '../store/database.js';
 
 export interface PurchaseLine extends OrderLine {
@@ -116,26 +117,23 @@ export function draftPurchaseOrder(
 
 /** The order as a purchasing clerk reads it, one block per store. */
 export function renderPurchaseOrder(order: PurchaseOrder): string {
-  const out: string[] = [];
-  out.push(`purchase order for ${order.propertyCode}`);
-  out.push(`${order.functionIds.length} function(s), ${order.packs} pack(s)`);
-  if (order.linesDropped > 0) {
-    out.push(`${order.linesDropped} line(s) covered by stock on hand`);
-  }
-  for (const section of order.sections) {
-    out.push('');
-    out.push(`${section.store}  ${section.packs} pack(s)`);
-    for (const line of section.lines) {
-      out.push(
-        `  ${line.ingredientCode.padEnd(16)} need ${formatQuantity(line.needed).padStart(12)}` +
-          `  have ${formatQuantity(line.onHand).padStart(12)}` +
-          `  order ${String(line.packs).padStart(3)} x ${formatQuantity(line.packSize)}`,
-      );
-    }
-  }
-  if (order.sections.length === 0) {
-    out.push('');
-    out.push('nothing to order');
-  }
-  return out.join('\n');
+  return sheet({
+    heading: `purchase order for ${order.propertyCode}`,
+    summary: [
+      `${order.functionIds.length} function(s), ${order.packs} pack(s)`,
+      ...(order.linesDropped > 0 ? [`${order.linesDropped} line(s) covered by stock on hand`] : []),
+    ],
+    sections: order.sections.map((section) => ({
+      title: `${section.store}  ${section.packs} pack(s)`,
+      rows: section.lines.map((line) =>
+        row(
+          padRight(line.ingredientCode, 16),
+          ` need ${padLeft(formatQuantity(line.needed), 12)}`,
+          `  have ${padLeft(formatQuantity(line.onHand), 12)}`,
+          `  order ${padLeft(line.packs, 3)} x ${formatQuantity(line.packSize)}`,
+        ),
+      ),
+    })),
+    whenBare: 'nothing to order',
+  });
 }

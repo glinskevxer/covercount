@@ -24,6 +24,7 @@ import { listShifts, shiftCost } from '../labour/shifts.js';
 import { tightTurns, type Turn } from '../property/turns.js';
 import { contentionOn, type Contention } from '../equipment/contention.js';
 import { sweepAll, type Finding } from '../audit/sweep.js';
+import { padLeft, padRight, row, sheet } from './layout.js';
 import type { Database } from '../store/database.js';
 
 export interface DaySheetFunction {
@@ -136,54 +137,50 @@ function clock(minute: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
-export function renderDaySheet(sheet: DaySheet): string {
-  const lines: string[] = [];
-  lines.push(`${sheet.propertyCode}  ${sheet.serviceDate}`);
-  lines.push(
-    `${sheet.functions.length} function(s), ${sheet.covers} cover(s)` +
-      (sheet.ungaranteed > 0 ? `, ${sheet.ungaranteed} without a guarantee` : ''),
-  );
-
-  if (sheet.functions.length === 0) {
-    lines.push('');
-    lines.push('nothing on the books');
-    return lines.join('\n');
-  }
-
-  lines.push('');
-  for (const row of sheet.functions) {
-    lines.push(
-      `  ${clock(row.startMinute)}-${clock(row.endMinute)}  ${row.room.padEnd(10)}` +
-        `${String(row.covers).padStart(5)}  ${row.serviceStyle.padEnd(10)}${row.name}` +
-        (row.guaranteed ? '' : '  (expected)'),
-    );
-  }
-
-  if (sheet.tightTurns.length > 0) {
-    lines.push('');
-    lines.push('turns that do not fit');
-    for (const turn of sheet.tightTurns) {
-      lines.push(
-        `  ${turn.spaceCode.padEnd(10)} ${turn.fromName} into ${turn.toName}, short ${turn.shortMinutes} minutes`,
-      );
-    }
-  }
-
-  if (sheet.shortOfKit.length > 0) {
-    lines.push('');
-    lines.push('short of kit');
-    for (const item of sheet.shortOfKit) {
-      lines.push(`  ${item.equipmentCode.padEnd(14)} short ${item.shortfall} of ${item.peak}`);
-    }
-  }
-
-  if (sheet.findings.length > 0) {
-    lines.push('');
-    lines.push('to sort out');
-    for (const finding of sheet.findings) {
-      lines.push(`  ${finding.subject.padEnd(14)} ${finding.message}`);
-    }
-  }
-
-  return lines.join('\n');
+export function renderDaySheet(day: DaySheet): string {
+  return sheet({
+    heading: `${day.propertyCode}  ${day.serviceDate}`,
+    summary: [
+      `${day.functions.length} function(s), ${day.covers} cover(s)` +
+        (day.ungaranteed > 0 ? `, ${day.ungaranteed} without a guarantee` : ''),
+    ],
+    sections: [
+      {
+        title: '',
+        rows: day.functions.map((each) =>
+          row(
+            `${clock(each.startMinute)}-${clock(each.endMinute)}  `,
+            padRight(each.room, 10),
+            padLeft(each.covers, 5),
+            '  ',
+            padRight(each.serviceStyle, 10),
+            each.name,
+            each.guaranteed ? '' : '  (expected)',
+          ),
+        ),
+      },
+      {
+        title: 'turns that do not fit',
+        rows: day.tightTurns.map((turn) =>
+          row(
+            padRight(turn.spaceCode, 10),
+            ` ${turn.fromName} into ${turn.toName}, short ${turn.shortMinutes} minutes`,
+          ),
+        ),
+      },
+      {
+        title: 'short of kit',
+        rows: day.shortOfKit.map((item) =>
+          row(padRight(item.equipmentCode, 14), ` short ${item.shortfall} of ${item.peak}`),
+        ),
+      },
+      {
+        title: 'to sort out',
+        rows: day.findings.map((finding) =>
+          row(padRight(finding.subject, 14), ` ${finding.message}`),
+        ),
+      },
+    ],
+    whenBare: 'nothing on the books',
+  });
 }
