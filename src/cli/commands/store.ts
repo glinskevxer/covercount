@@ -14,10 +14,21 @@ import { importLarder, importPrices, renderImportReport } from '../../store/impo
 import { ruleViolation } from '../../core/errors.js';
 import { tableNames } from '../../store/database.js';
 import { appliedMigrations } from '../../store/migrate.js';
-import { MIGRATIONS, TARGET_SCHEMA_VERSION, storeVersion } from '../../store/schema.js';
+import {
+  MIGRATIONS,
+  TARGET_SCHEMA_VERSION,
+  migrateToLatest,
+  storeVersion,
+} from '../../store/schema.js';
 import { columns, render, renderJson, renderRecord } from '../output.js';
 import { onReadStore, onStore, type CliContext } from '../context.js';
-import { backupIsCurrent, backupTo, readBackup } from '../../store/backup.js';
+import {
+  backupIsCurrent,
+  backupTo,
+  checkRestore,
+  readBackup,
+  restoreFrom,
+} from '../../store/backup.js';
 import { seedDemoProperty } from '../../demo/property.js';
 import { countRows, exportSetup, importSetup, type SetupExport } from '../../store/transfer.js';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -464,4 +475,63 @@ export function registerSeasonCommands(program: Command, makeContext: () => CliC
         );
       }),
     );
+}
+
+export function registerRestoreCommands(program: Command, makeContext: () => CliContext): void {
+  const backup = program.commands.find((command) => command.name() === 'backup');
+  if (backup === undefined) {
+    throw new Error('the backup command has to be registered before its restore');
+  }
+
+  backup
+    .command('check')
+    .description('whether a backup is fit to put back')
+    .requiredOption('--file <path>', 'the backup')
+    .action((options: Record<string, string>) => {
+      const context = makeContext();
+      const check = checkRestore(options.file ?? '');
+      context.write(
+        renderRecord(
+          {
+            version: check.version,
+            behindBy: check.behindBy,
+            integrity: check.integrity,
+            references: check.referenceProblems.length,
+            rows: check.rows,
+            properties: check.properties.join(' '),
+            ok: check.ok,
+          },
+          { format: context.format },
+        ),
+      );
+    });
+
+  backup
+    .command('restore')
+    .description('put a backup back')
+    .requiredOption('--file <path>', 'the backup')
+    .requiredOption('--to <path>', 'where the store should end up')
+    .option('--migrate', 'bring it up to this build on the way in')
+    .option('--overwrite', 'write over a store that is already there')
+    .action((options: Record<string, string | boolean>) => {
+      const context = makeContext();
+      const result = restoreFrom(
+        String(options.file ?? ''),
+        String(options.to ?? ''),
+        (db) => migrateToLatest(db),
+        { migrate: options.migrate === true, overwrite: options.overwrite === true },
+      );
+      context.write(
+        renderRecord(
+          {
+            from: result.from,
+            to: result.to,
+            bytes: result.bytes,
+            version: result.version,
+            migrated: result.migrated,
+          },
+          { format: context.format },
+        ),
+      );
+    });
 }

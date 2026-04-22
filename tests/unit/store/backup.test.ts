@@ -3,8 +3,14 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanScratch, scratchDirectory, scratchStorePath } from '../../support/store.js';
 import { closeDatabase, openDatabase } from '../../../src/store/database.js';
-import { TARGET_SCHEMA_VERSION, openStore } from '../../../src/store/schema.js';
-import { backupIsCurrent, backupTo, readBackup } from '../../../src/store/backup.js';
+import { TARGET_SCHEMA_VERSION, migrateToLatest, openStore } from '../../../src/store/schema.js';
+import {
+  backupIsCurrent,
+  backupTo,
+  checkRestore,
+  readBackup,
+  restoreFrom,
+} from '../../../src/store/backup.js';
 import { createProperty } from '../../../src/property/store.js';
 import { FIXED_NOW } from '../../support/fixtures.js';
 
@@ -115,6 +121,109 @@ describe('reading a backup', () => {
   it('refuses a backup that is not there', () => {
     expect(() => readBackup(join(scratchDirectory(), 'nothing.db'))).toThrow(
       /there is no backup at/,
+    );
+  });
+});
+
+describe('checking a backup before putting it back', () => {
+  it('says a fresh backup is fit to restore', async () => {
+    const { db } = liveStore();
+    const target = join(scratchDirectory(), 'backup.covercount.db');
+    await backupTo(db, target);
+    closeDatabase(db);
+
+    const check = checkRestore(target);
+    expect(check.ok).toBe(true);
+    expect(check.integrity).toBe('ok');
+    expect(check.referenceProblems).toEqual([]);
+    expect(check.behindBy).toBe(0);
+    expect(check.properties).toEqual(['CANYON']);
+    expect(check.rows).toBeGreaterThan(0);
+  });
+
+  it('says so when there is nothing there', () => {
+    expect(() => checkRestore(join(scratchDirectory(), 'nothing.db'))).toThrow(/no backup at/);
+  });
+});
+
+describe('putting a backup back', () => {
+  it('writes it where it is told and reports the size', async () => {
+    const { db } = liveStore();
+    const target = join(scratchDirectory(), 'backup.covercount.db');
+    await backupTo(db, target);
+    closeDatabase(db);
+
+    const destination = join(scratchDirectory(), 'restored.covercount.db');
+    const result = restoreFrom(target, destination, migrateToLatest);
+    expect(existsSync(destination)).toBe(true);
+    expect(result.bytes).toBeGreaterThan(0);
+    expect(result.migrated).toBe(false);
+    expect(result.version).toBe(TARGET_SCHEMA_VERSION);
+    expect(readBackup(destination).tables.length).toBeGreaterThan(20);
+  });
+
+  it('refuses to write over a store unless it is told plainly', async () => {
+    const { db } = liveStore();
+    const target = join(scratchDirectory(), 'backup.covercount.db');
+    await backupTo(db, target);
+    closeDatabase(db);
+
+    const destination = scratchStorePath();
+    closeDatabase(openStore(destination));
+    expect(() => restoreFrom(target, destination, migrateToLatest)).toThrow(
+      /already holds a store/,
+    );
+    expect(restoreFrom(target, destination, migrateToLatest, { overwrite: true }).to).toBe(
+      destination,
+    );
+  });
+
+  it('refuses a destination that is not one', async () => {
+    const { db } = liveStore();
+    const target = join(scratchDirectory(), 'backup.covercount.db');
+    await backupTo(db, target);
+    closeDatabase(db);
+    expect(() => restoreFrom(target, '   ', migrateToLatest)).toThrow(/somewhere to go/);
+  });
+
+  it('leaves the schema alone unless it is asked to migrate', async () => {
+    const { db } = liveStore();
+    const target = join(scratchDirectory(), 'backup.covercount.db');
+    await backupTo(db, target);
+    closeDatabase(db);
+
+    const destination = join(scratchDirectory(), 'restored.covercount.db');
+    const migrated = restoreFrom(target, destination, migrateToLatest, { migrate: true });
+    expect(migrated.migrated).toBe(true);
+    expect(migrated.version).toBe(TARGET_SCHEMA_VERSION);
+  });
+
+  it('refuses a file that will not stand up to a look', async () => {
+    const { db } = liveStore();
+    const target = join(scratchDirectory(), 'backup.covercount.db');
+    await backupTo(db, target);
+    closeDatabase(db);
+
+    // A store with a dangling reference in it is not fit to put back, however
+    // cleanly it opens.
+    const wounded = openDatabase(target);
+    wounded.pragma('foreign_keys = OFF');
+    wounded.prepare("delete from property where code = 'CANYON'").run();
+    wounded
+      .prepare(
+        `insert into booking (id, property_code, account_code, post_as, sales_manager, status,
+           arrival_date, departure_date, created_at, updated_at, closed_at, cancel_reason)
+         values ('BK-2025-0001', 'CANYON', null, 'Orphan', 'nobody', 'INQUIRY',
+           '2025-04-17', '2025-04-19', ?, ?, null, null)`,
+      )
+      .run(FIXED_NOW, FIXED_NOW);
+    closeDatabase(wounded);
+
+    const check = checkRestore(target);
+    expect(check.ok).toBe(false);
+    expect(check.referenceProblems.length).toBeGreaterThan(0);
+    expect(() => restoreFrom(target, join(scratchDirectory(), 'no.db'), migrateToLatest)).toThrow(
+      /not fit to restore/,
     );
   });
 });

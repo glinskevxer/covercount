@@ -125,6 +125,25 @@ the migrations a backup carries
 | --- | --- |
 | `--path <path>` | the backup (required) |
 
+### `backup check`
+
+whether a backup is fit to put back
+
+| option | what it is |
+| --- | --- |
+| `--file <path>` | the backup (required) |
+
+### `backup restore`
+
+put a backup back
+
+| option | what it is |
+| --- | --- |
+| `--file <path>` | the backup (required) |
+| `--to <path>` | where the store should end up (required) |
+| `--migrate` | bring it up to this build on the way in |
+| `--overwrite` | write over a store that is already there |
+
 ## `demo`
 
 a property to look at

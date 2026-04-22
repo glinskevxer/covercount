@@ -15,6 +15,7 @@ import {
   registerImportCommands,
   registerMaintenanceCommands,
   registerCatalogueCommands,
+  registerRestoreCommands,
   registerSeasonCommands,
   registerPlanCommands,
   registerDemoCommands,
@@ -130,6 +131,7 @@ export function buildProgram(makeContext: () => CliContext): Command {
   registerCatalogueCommands(program, makeContext);
   registerSeasonCommands(program, makeContext);
   registerBackupCommands(program, makeContext);
+  registerRestoreCommands(program, makeContext);
   registerDemoCommands(program, makeContext);
   registerTransferCommands(program, makeContext);
   registerPropertyCommands(program, makeContext);
