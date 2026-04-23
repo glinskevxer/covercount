@@ -331,3 +331,82 @@ describe('conditional requests', () => {
     expect(response.headers.get('etag')).toBeNull();
   });
 });
+
+describe('the reports over the wire', () => {
+  it('serves the whole day on one page', async () => {
+    const { cli, slot } = seeded();
+    const base = await start(cli.storePath);
+    const { status, body } = await get(base, '/properties/CANYON/today?date=2025-04-18');
+    expect(status).toBe(200);
+    const sheet = body as {
+      covers: number;
+      unguaranteed: number;
+      functions: { id: string; guaranteed: boolean }[];
+    };
+    expect(sheet.covers).toBe(180);
+    expect(sheet.unguaranteed).toBe(0);
+    expect(sheet.functions[0]?.id).toBe(slot);
+    expect(sheet.functions[0]?.guaranteed).toBe(true);
+  });
+
+  it('serves the pace across a range, busy days only', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    const { body } = await get(base, '/properties/CANYON/pace?from=2025-04-14&to=2025-04-20');
+    const pace = body as { heldCovers: number; days: { date: string }[] };
+    expect(pace.heldCovers).toBe(180);
+    expect(pace.days).toHaveLength(1);
+    expect(pace.days[0]?.date).toBe('2025-04-18');
+  });
+
+  it('serves the turns on a date', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    const { status, body } = await get(base, '/properties/CANYON/turns?date=2025-04-18');
+    expect(status).toBe(200);
+    expect(body).toEqual([]);
+  });
+
+  it('serves what the cupboard is short of', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    const { body } = await get(base, '/properties/CANYON/kit?date=2025-04-18');
+    const kit = body as { hireCost: string; items: unknown[] };
+    expect(kit.hireCost).toBe('$0.00');
+    expect(kit.items).toEqual([]);
+  });
+
+  it('serves the meetings before the event', async () => {
+    const { cli, booking } = seeded();
+    cli.run(
+      'meet',
+      'book',
+      '--booking',
+      booking,
+      '--kind',
+      'TASTING',
+      '--date',
+      '2025-02-10',
+      '--start',
+      '11:00',
+      '--end',
+      '13:00',
+      '--who',
+      'Ms Fenwick',
+    );
+    const base = await start(cli.storePath);
+    const { body } = await get(base, `/bookings/${booking}/meetings`);
+    const meetings = body as { kind: string; who: string; outcome: string | null }[];
+    expect(meetings).toHaveLength(1);
+    expect(meetings[0]?.kind).toBe('TASTING');
+    expect(meetings[0]?.who).toBe('Ms Fenwick');
+    expect(meetings[0]?.outcome).toBeNull();
+  });
+
+  it('answers 400 when the date is missing from a report route', async () => {
+    const { cli } = seeded();
+    const base = await start(cli.storePath);
+    expect((await get(base, '/properties/CANYON/today')).status).toBe(400);
+    expect((await get(base, '/properties/CANYON/pace?from=2025-04-14')).status).toBe(400);
+  });
+});

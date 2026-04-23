@@ -29,6 +29,11 @@ import { belowPar, listStockLevels } from '../production/stock.js';
 import { draftPurchaseOrder } from '../production/purchasing.js';
 import { listProductionFactors } from '../production/factors.js';
 import { cancellationBands } from '../booking/damages.js';
+import { daySheet } from '../reports/daysheet.js';
+import { busyDays, forecast } from '../reports/forecast.js';
+import { turnPlan } from '../property/turns.js';
+import { contentionOn } from '../equipment/contention.js';
+import { listAppointments } from '../booking/appointments.js';
 import { formatQuantity } from '../core/quantity.js';
 import { formatRate } from '../core/rate.js';
 import type { Database } from '../store/database.js';
@@ -341,6 +346,118 @@ function withFunctionRoutes(router: Router<ServiceContext>): Router<ServiceConte
           share: formatMoney(line.share),
         })),
       };
+    },
+  );
+
+  router.get('/properties/:property/today', 'the whole day on one page', (match, context) => {
+    const sheet = daySheet(
+      context.db,
+      propertyOf(match),
+      calendarDate(requireQuery(match, 'date')),
+    );
+    return {
+      date: sheet.serviceDate,
+      covers: sheet.covers,
+      unguaranteed: sheet.ungaranteed,
+      revenue: formatMoney(sheet.revenue),
+      labour: formatMoney(sheet.labour),
+      functions: sheet.functions.map((row) => ({
+        id: row.functionId,
+        name: row.name,
+        room: row.room,
+        start: row.startMinute,
+        end: row.endMinute,
+        covers: row.covers,
+        guaranteed: row.guaranteed,
+        crew: row.heads,
+      })),
+      tightTurns: sheet.tightTurns.length,
+      shortOfKit: sheet.shortOfKit.length,
+      findings: sheet.findings.length,
+    };
+  });
+
+  router.get(
+    '/properties/:property/pace',
+    'covers and revenue across a range',
+    (match, context) => {
+      const found = forecast(
+        context.db,
+        propertyOf(match),
+        calendarDate(requireQuery(match, 'from')),
+        calendarDate(requireQuery(match, 'to')),
+      );
+      return {
+        from: found.from,
+        to: found.to,
+        definiteCovers: found.definiteCovers,
+        heldCovers: found.heldCovers,
+        definiteRevenue: formatMoney(found.definiteRevenue),
+        heldRevenue: formatMoney(found.heldRevenue),
+        unpriced: found.unpriced,
+        days: busyDays(found).map((day) => ({
+          date: day.serviceDate,
+          functions: day.functions,
+          definite: day.definiteCovers,
+          held: day.heldCovers,
+        })),
+      };
+    },
+  );
+
+  router.get(
+    '/properties/:property/turns',
+    'the back to back pairs on a date',
+    (match, context) => {
+      const plan = turnPlan(
+        context.db,
+        propertyOf(match),
+        calendarDate(requireQuery(match, 'date')),
+      );
+      return plan.turns.map((turn) => ({
+        room: turn.spaceCode,
+        out: turn.fromName,
+        in: turn.toName,
+        gap: turn.gapMinutes,
+        needs: turn.standard.minutes,
+        short: turn.shortMinutes,
+        tight: turn.tight,
+      }));
+    },
+  );
+
+  router.get('/properties/:property/kit', 'what the cupboard is short of', (match, context) => {
+    const day = contentionOn(
+      context.db,
+      propertyOf(match),
+      calendarDate(requireQuery(match, 'date')),
+    );
+    return {
+      hireCost: formatMoney(day.hireCost),
+      items: day.items.map((item) => ({
+        item: item.equipmentCode,
+        peak: item.peak,
+        owned: item.owned,
+        short: item.shortfall,
+      })),
+    };
+  });
+
+  router.get(
+    '/bookings/:booking/meetings',
+    'the appointments before the event',
+    (match, context) => {
+      const id = parseEntityId('booking', requireParam(match, 'booking'));
+      return listAppointments(context.db, id).map((row) => ({
+        id: row.id,
+        kind: row.kind,
+        date: row.onDate,
+        start: row.startMinute,
+        end: row.endMinute,
+        room: row.spaceCode ?? null,
+        who: row.attendees,
+        outcome: row.outcome ?? null,
+      }));
     },
   );
 
