@@ -71,10 +71,10 @@ describe('creating a booking', () => {
     withStore((db) => {
       seedProperty(db);
       expect(() => seedBooking(db, { accountCode: undefined, postAs: '  ' })).toThrow(
-        /needs a name for the reader board/,
+        /the name on the reader board cannot be blank/,
       );
       expect(() => seedBooking(db, { accountCode: undefined, postAs: 'x'.repeat(61) })).toThrow(
-        /sixty characters/,
+        /takes 60 characters and this is/,
       );
     });
   });
@@ -242,7 +242,7 @@ describe('editing a booking', () => {
     withStore((db) => {
       const booking = seedPropertyAccountBooking(db);
       expect(() => updateBooking(db, booking.id, { postAs: '  ' }, LATER)).toThrow(
-        /needs a name for the reader board/,
+        /the name on the reader board cannot be blank/,
       );
       expect(() => updateBooking(db, booking.id, { accountCode: 'NOBODY' }, LATER)).toThrow(
         /has no account NOBODY/,

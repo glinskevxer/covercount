@@ -12,6 +12,7 @@
  */
 
 import { conflict, invalidInput, notFound } from '../core/errors.js';
+import { LINE, singleLine } from '../core/text.js';
 import { catalogCode, type EntityId } from '../core/ids.js';
 import { money, scaleMoney, type Money } from '../core/money.js';
 import { requireFunction } from '../booking/functions.js';
@@ -97,9 +98,10 @@ export function addCharge(
   if (!isChargeSource(source)) {
     throw invalidInput('charge.source', `${input.source} is not a charge source`);
   }
-  if (input.description.trim().length === 0) {
-    throw invalidInput('charge.description', 'a charge line needs a description');
-  }
+  const description = singleLine('a charge description', input.description, LINE, {
+    required: true,
+    code: 'charge.description',
+  });
   if (!Number.isInteger(input.quantity) || input.quantity < 0) {
     throw invalidInput('charge.quantity', 'a charge quantity is a whole number');
   }
@@ -128,7 +130,7 @@ export function addCharge(
       .run(
         functionId,
         category,
-        input.description.trim(),
+        description,
         input.quantity,
         input.unitMinor,
         itemCode ?? null,

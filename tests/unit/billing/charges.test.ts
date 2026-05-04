@@ -95,7 +95,7 @@ describe('adding a charge line', () => {
         /not a charge source/,
       );
       expect(() => addCharge(db, slot.id, { ...base, description: '  ' })).toThrow(
-        /needs a description/,
+        /a charge description cannot be blank/,
       );
       expect(() => addCharge(db, slot.id, { ...base, quantity: 1.5 })).toThrow(/whole number/);
       expect(() => addCharge(db, slot.id, { ...base, unitMinor: 1.5 })).toThrow(/minor units/);

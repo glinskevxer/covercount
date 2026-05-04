@@ -17,6 +17,7 @@
 
 import { addDays, compareCalendarDates, daysBetween, type CalendarDate } from '../core/calendar.js';
 import { conflict, invalidInput, notFound } from '../core/errors.js';
+import { boundedText, LINE, NOTE, singleLine } from '../core/text.js';
 import type { CatalogCode, EntityId } from '../core/ids.js';
 import { requireSpace } from '../property/store.js';
 import { requireBooking } from './store.js';
@@ -127,6 +128,9 @@ export function bookAppointment(
     requireSpace(db, booking.propertyCode, input.spaceCode);
   }
 
+  const attendees = singleLine('the attendees', input.attendees ?? '', LINE);
+  const note = boundedText('the note', input.note ?? '', NOTE);
+
   const first = firstServiceDate(db, bookingId);
   if (first !== undefined) {
     if (compareCalendarDates(input.onDate, first) > 0) {
@@ -161,8 +165,8 @@ export function bookAppointment(
       input.startMinute,
       input.endMinute,
       input.spaceCode ?? null,
-      (input.attendees ?? '').trim(),
-      (input.note ?? '').trim(),
+      attendees,
+      note,
       now,
     );
   return requireAppointment(db, Number(result.lastInsertRowid));
@@ -196,10 +200,11 @@ export function listAppointments(db: Database, bookingId: EntityId<'booking'>): 
 /** Write down what came out of it, which is the only reason to keep the row. */
 export function recordOutcome(db: Database, id: number, outcome: string): Appointment {
   requireAppointment(db, id);
-  if (outcome.trim().length === 0) {
-    throw invalidInput('appointment.outcome', 'an outcome that says nothing is not an outcome');
-  }
-  db.prepare('update appointment set outcome = ? where id = ?').run(outcome.trim(), id);
+  const said = boundedText('an outcome', outcome, NOTE, {
+    required: true,
+    code: 'appointment.outcome',
+  });
+  db.prepare('update appointment set outcome = ? where id = ?').run(said, id);
   return requireAppointment(db, id);
 }
 

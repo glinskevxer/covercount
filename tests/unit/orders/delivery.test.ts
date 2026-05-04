@@ -68,10 +68,10 @@ describe('the standing list', () => {
       ready(db);
       expect(() =>
         addRecipient(db, CANYON, { recipient: '  ', role: 'Chef', channel: 'EMAIL' }),
-      ).toThrow(/needs a name/);
+      ).toThrow(/a recipient cannot be blank/);
       expect(() =>
         addRecipient(db, CANYON, { recipient: 'chef@canyon', role: ' ', channel: 'EMAIL' }),
-      ).toThrow(/needs a role/);
+      ).toThrow(/a role cannot be blank/);
       expect(() =>
         addRecipient(db, CANYON, { recipient: 'chef@canyon', role: 'Chef', channel: 'PIGEON' }),
       ).toThrow(/not a channel/);

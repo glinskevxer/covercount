@@ -9,6 +9,7 @@
 
 import { calendarDate, compareCalendarDates, type CalendarDate } from '../core/calendar.js';
 import { conflict, invalidInput, notFound } from '../core/errors.js';
+import { BOARD_LINE, singleLine } from '../core/text.js';
 import { catalogCode, parseEntityId, type CatalogCode, type EntityId } from '../core/ids.js';
 import { requireProperty } from '../property/store.js';
 import { inTransaction, type Database } from '../store/database.js';
@@ -63,13 +64,10 @@ export function createBooking(
   now: string,
 ): Booking {
   requireProperty(db, propertyCode);
-  const postAs = input.postAs.trim();
-  if (postAs.length === 0) {
-    throw invalidInput('booking.post-as', 'a booking needs a name for the reader board');
-  }
-  if (postAs.length > 60) {
-    throw invalidInput('booking.post-as', 'the reader board takes sixty characters, no more');
-  }
+  const postAs = singleLine('the name on the reader board', input.postAs, BOARD_LINE, {
+    required: true,
+    code: 'booking.post-as',
+  });
   const arrival = calendarDate(input.arrivalDate);
   const departure = calendarDate(input.departureDate);
   if (compareCalendarDates(departure, arrival) < 0) {
@@ -186,13 +184,13 @@ export function updateBooking(
     );
   }
 
-  const postAs = input.postAs === undefined ? booking.postAs : input.postAs.trim();
-  if (postAs.length === 0) {
-    throw invalidInput('booking.post-as', 'a booking needs a name for the reader board');
-  }
-  if (postAs.length > 60) {
-    throw invalidInput('booking.post-as', 'the reader board takes sixty characters, no more');
-  }
+  const postAs =
+    input.postAs === undefined
+      ? booking.postAs
+      : singleLine('the name on the reader board', input.postAs, BOARD_LINE, {
+          required: true,
+          code: 'booking.post-as',
+        });
 
   const arrival =
     input.arrivalDate === undefined ? booking.arrivalDate : calendarDate(input.arrivalDate);

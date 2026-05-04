@@ -202,7 +202,7 @@ describe('the diary of appointments', () => {
       expect(recordOutcome(db, appointment.id, '  took the halibut  ').outcome).toBe(
         'took the halibut',
       );
-      expect(() => recordOutcome(db, appointment.id, '   ')).toThrow(/is not an outcome/);
+      expect(() => recordOutcome(db, appointment.id, '   ')).toThrow(/an outcome cannot be blank/);
       expect(() => recordOutcome(db, 9_999, 'anything')).toThrow(/is not on file/);
     });
   });

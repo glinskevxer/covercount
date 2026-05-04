@@ -14,6 +14,7 @@
  */
 
 import { conflict, invalidInput, notFound } from '../core/errors.js';
+import { NAME, singleLine } from '../core/text.js';
 import type { CatalogCode, EntityId } from '../core/ids.js';
 import { requireProperty } from '../property/store.js';
 import { propertyOf, requireRevision } from './revisions.js';
@@ -46,18 +47,15 @@ export function addRecipient(
   input: AddRecipientInput,
 ): Recipient {
   requireProperty(db, propertyCode);
-  const recipient = input.recipient.trim();
-  const role = input.role.trim();
+  const recipient = singleLine('a recipient', input.recipient, NAME, {
+    required: true,
+    code: 'delivery.recipient',
+  });
+  const role = singleLine('a role', input.role, NAME, {
+    required: true,
+    code: 'delivery.role',
+  });
   const channel = input.channel.trim().toUpperCase();
-  if (recipient.length === 0) {
-    throw invalidInput('delivery.recipient', 'a recipient needs a name');
-  }
-  if (role.length === 0) {
-    throw invalidInput(
-      'delivery.role',
-      `${recipient} needs a role, so the sheet says why they got it`,
-    );
-  }
   if (!isDeliveryChannel(channel)) {
     throw invalidInput(
       'delivery.channel',
