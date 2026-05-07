@@ -9,7 +9,7 @@ import { money } from '../../../src/core/money.js';
 import { rate, rateFromPercent } from '../../../src/core/rate.js';
 import { findPriceOn } from '../../../src/catalog/pricing.js';
 import { findLabourRate } from '../../../src/labour/staffing.js';
-import { renderRoll, rollSeason, uplifted } from '../../../src/store/season.js';
+import { renderRoll, rollSeason, uplifted } from '../../../src/workflow/season.js';
 import type { Database } from '../../../src/store/database.js';
 
 const THIS_SEASON = calendarDate('2025-01-01');

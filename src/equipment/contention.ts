@@ -21,7 +21,7 @@ import { requireProperty } from '../property/store.js';
 import { functionsOnDate, occupiedWindow, windowsOverlap } from '../booking/diary.js';
 import { holdsSpace } from '../booking/types.js';
 import { listEquipment, requireEquipment } from './store.js';
-import { padLeft, padRight, row, sheet, subRow } from '../reports/layout.js';
+import { padLeft, padRight, row, sheet, subRow } from '../core/layout.js';
 import type { Database } from '../store/database.js';
 
 export interface Booked {

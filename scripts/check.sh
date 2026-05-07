@@ -24,6 +24,9 @@ node scripts/check-pins.mjs
 echo "--- dead exports"
 node scripts/check-exports.mjs
 
+echo "--- the module map"
+node scripts/generate-map.mjs --check
+
 echo "--- release checks"
 node scripts/check-release.mjs
 

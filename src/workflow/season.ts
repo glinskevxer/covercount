@@ -22,7 +22,7 @@ import { requireProperty } from '../property/store.js';
 import { bookOn, listPriceBooks, rollForward } from '../catalog/pricing.js';
 import { findLabourRate, setLabourRate } from '../labour/staffing.js';
 import { ROLES } from '../labour/types.js';
-import { inTransaction, type Database } from './database.js';
+import { inTransaction, type Database } from '../store/database.js';
 
 export interface RollLine {
   readonly what: string;

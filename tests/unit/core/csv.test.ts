@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csvCell, fromCsv, toCsv } from '../../../src/reports/csv.js';
+import { csvCell, fromCsv, toCsv } from '../../../src/core/csv.js';
 
 describe('one cell', () => {
   it('leaves a plain value alone', () => {

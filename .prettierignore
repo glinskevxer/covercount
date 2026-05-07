@@ -7,3 +7,4 @@ package-lock.json
 # and formatting it here would put the committed file out of step with what the
 # generator writes, which is exactly what docs:check exists to catch.
 docs/commands.md
+docs/architecture.md

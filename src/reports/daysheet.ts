@@ -24,7 +24,7 @@ import { listShifts, shiftCost } from '../labour/shifts.js';
 import { tightTurns, type Turn } from '../property/turns.js';
 import { contentionOn, type Contention } from '../equipment/contention.js';
 import { sweepAll, type Finding } from '../audit/sweep.js';
-import { padLeft, padRight, row, sheet } from './layout.js';
+import { padLeft, padRight, row, sheet } from '../core/layout.js';
 import type { Database } from '../store/database.js';
 
 export interface DaySheetFunction {

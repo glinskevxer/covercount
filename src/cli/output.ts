@@ -8,7 +8,7 @@
  * the caller asked for and no command formats a number twice.
  */
 
-import { toCsv } from '../reports/csv.js';
+import { toCsv } from '../core/csv.js';
 
 export type Cell = string | number | boolean | null | undefined;
 

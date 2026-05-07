@@ -119,6 +119,8 @@ jobs:
         run: node scripts/check-pins.mjs
       - name: nothing is exported that nothing imports
         run: node scripts/check-exports.mjs
+      - name: every import points downwards
+        run: node scripts/generate-map.mjs --check
       - name: the build is shippable
         run: |
           npm run build

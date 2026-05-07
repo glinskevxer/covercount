@@ -22,7 +22,7 @@ import { requireProperty } from '../property/store.js';
 import { requireFunction } from '../booking/functions.js';
 import { ingredientDemandForFunctions } from './explode.js';
 import { orderLine, type OrderLine } from './stock.js';
-import { padLeft, padRight, row, sheet } from '../reports/layout.js';
+import { padLeft, padRight, row, sheet } from '../core/layout.js';
 import type { Database } from '../store/database.js';
 
 export interface PurchaseLine extends OrderLine {

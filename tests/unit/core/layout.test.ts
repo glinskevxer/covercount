@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { padLeft, padRight, row, sheet, subRow } from '../../../src/reports/layout.js';
+import { padLeft, padRight, row, sheet, subRow } from '../../../src/core/layout.js';
 
 describe('a row', () => {
   it('indents and joins the parts', () => {

@@ -6,7 +6,7 @@ import { catalogCode as code } from '../../../src/core/ids.js';
 import { calendarDate } from '../../../src/core/calendar.js';
 import { findPriceOn } from '../../../src/catalog/pricing.js';
 import { listIngredients } from '../../../src/production/ingredients.js';
-import { importLarder, importPrices, renderImportReport } from '../../../src/store/import.js';
+import { importLarder, importPrices, renderImportReport } from '../../../src/workflow/import.js';
 import type { Database } from '../../../src/store/database.js';
 
 const RACK = code('RACK-2025');

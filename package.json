@@ -23,6 +23,8 @@
     "check": "bash scripts/check.sh",
     "check:pins": "node scripts/check-pins.mjs",
     "check:exports": "node scripts/check-exports.mjs",
+    "map": "node scripts/generate-map.mjs",
+    "map:check": "node scripts/generate-map.mjs --check",
     "docs": "npm run build && node scripts/generate-docs.mjs",
     "docs:check": "npm run build && node scripts/generate-docs.mjs --check",
     "check:release": "node scripts/check-release.mjs"
