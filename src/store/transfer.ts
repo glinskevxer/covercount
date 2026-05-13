@@ -46,6 +46,36 @@ export const SETUP_TABLES = [
   'timeline_template',
   'equipment',
   'setup_requirement',
+  'bar_tier',
+  'production_factor',
+  'cancellation_band',
+  'turn_standard',
+  'distribution_point',
+  'distribution_list',
+  'commission_agreement',
+  'credit_terms',
+  'ingredient_cost',
+] as const;
+
+/**
+ * Tables that carry a property code and are deliberately not setup.
+ *
+ * Everything here is either trade (a booking and everything hanging off one),
+ * a running figure that belongs to the building it was counted in (the shelf),
+ * or a counter that has to start fresh (the id sequence). A new property gets
+ * the rules and none of the history, which is the whole point of a setup.
+ */
+export const NOT_SETUP = [
+  'booking',
+  'function_slot',
+  'invoice',
+  'beo',
+  'change_order',
+  'requisition',
+  'space_hold',
+  'stock_level',
+  'stock_movement',
+  'id_sequence',
 ] as const;
 
 export type SetupTable = (typeof SETUP_TABLES)[number];
