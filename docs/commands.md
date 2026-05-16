@@ -1650,7 +1650,7 @@ issue to a function or receive a delivery
 | --- | --- |
 | `--item <code>` | the ingredient (required) |
 | `--by <quantity>` | the movement, negative to issue (required) |
-| `--reason` | ISSUE, RECEIVE, WASTE or TRANSFER (required) |
+| `--reason <reason>` | ISSUE, RECEIVE, WASTE or TRANSFER (required) |
 | `--reference <text>` | the requisition or delivery note |
 
 ### `stock list`

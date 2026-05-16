@@ -455,7 +455,7 @@ export function registerStockCommands(program: Command, makeContext: () => CliCo
     .description('issue to a function or receive a delivery')
     .requiredOption('--item <code>', 'the ingredient')
     .requiredOption('--by <quantity>', 'the movement, negative to issue')
-    .requiredOption('--reason', 'ISSUE, RECEIVE, WASTE or TRANSFER')
+    .requiredOption('--reason <reason>', 'ISSUE, RECEIVE, WASTE or TRANSFER')
     .option('--reference <text>', 'the requisition or delivery note')
     .action(
       onStore(makeContext, (db, context, options: Record<string, string>) => {

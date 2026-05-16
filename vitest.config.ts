@@ -19,11 +19,14 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['src/**/index.ts'],
       reporter: ['text', 'lcov'],
+      // Raised as the command layer got its own tests. The numbers sit just
+      // under where the suite actually stands, so a change that drops coverage
+      // by a percent fails rather than eroding it a commit at a time.
       thresholds: {
-        statements: 85,
-        branches: 80,
-        functions: 85,
-        lines: 85,
+        statements: 91,
+        branches: 86,
+        functions: 98,
+        lines: 91,
       },
     },
   },
