@@ -22,6 +22,7 @@ import { requireProperty } from '../property/store.js';
 import { setPrice } from '../catalog/pricing.js';
 import { createIngredient } from '../production/ingredients.js';
 import { fromCsv } from '../core/csv.js';
+import { padLeft, row, sheet } from '../core/layout.js';
 import { inTransaction, type Database } from '../store/database.js';
 
 export interface ImportProblem {
@@ -217,18 +218,17 @@ export function importLarder(
 }
 
 export function renderImportReport(report: ImportReport): string {
-  const lines: string[] = [];
-  lines.push(
-    report.dryRun
+  return sheet({
+    heading: report.dryRun
       ? `${report.read} row(s) read, nothing written`
       : `${report.read} row(s) read, ${report.written} written`,
-  );
-  if (report.problems.length > 0) {
-    lines.push('');
-    lines.push(`${report.problems.length} problem(s), so nothing was written:`);
-    for (const problem of report.problems) {
-      lines.push(`  line ${String(problem.line).padStart(4)}  ${problem.message}`);
-    }
-  }
-  return lines.join('\n');
+    sections: [
+      {
+        title: `${report.problems.length} problem(s), so nothing was written:`,
+        rows: report.problems.map((problem) =>
+          row(`line ${padLeft(problem.line, 4)}  ${problem.message}`),
+        ),
+      },
+    ],
+  });
 }

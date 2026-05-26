@@ -32,6 +32,7 @@ import { lapsedHolds } from '../property/holds.js';
 import { listStockLevels } from '../production/stock.js';
 import { productionVariance } from '../production/actuals.js';
 import { formatMoney } from '../core/money.js';
+import { padRight, row, sheet } from '../core/layout.js';
 import { foreignKeyCheck, type Database } from '../store/database.js';
 
 /** Nothing iterates the levels, so they are a union rather than a list. */
@@ -360,8 +361,15 @@ export function renderFindings(findings: readonly Finding[]): string {
     return 'nothing to look at';
   }
   const counts = countByLevel(findings);
-  const lines = findings.map(
-    (finding) => `  ${finding.level.padEnd(8)}${finding.subject.padEnd(14)}${finding.message}`,
-  );
-  return [`${counts.error} errors, ${counts.warning} warnings`, '', ...lines].join('\n');
+  return sheet({
+    heading: `${counts.error} errors, ${counts.warning} warnings`,
+    sections: [
+      {
+        title: '',
+        rows: findings.map((finding) =>
+          row(padRight(finding.level, 8), padRight(finding.subject, 14), finding.message),
+        ),
+      },
+    ],
+  });
 }

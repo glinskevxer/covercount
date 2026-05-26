@@ -30,6 +30,7 @@ import {
   requireBarTier,
 } from './store.js';
 import type { BarKind } from './store.js';
+import { padRight, row, sheet } from '../core/layout.js';
 import type { Database } from '../store/database.js';
 
 export interface PourLine {
@@ -154,27 +155,28 @@ export function requireReconciliation(
 }
 
 export function renderReconciliation(found: BarReconciliation): string {
-  const lines: string[] = [];
-  lines.push(
-    `${found.functionId}  ${found.kind} bar, ${found.covers} covers, ${found.hours} hour(s)`,
-  );
-  lines.push(`billed ${found.billed.amount} minor, poured ${found.bottles.toFixed(1)} bottles`);
-  if (found.onPackage !== undefined) {
-    lines.push(
-      `package would be ${found.onPackage.amount}, consumption would be ${found.onConsumption.amount}`,
-    );
-    lines.push(`better for the house: ${found.betterForTheHouse}`);
-  }
-  if (found.poured.length === 0) {
-    lines.push('');
-    lines.push('nobody counted the bottles');
-    return lines.join('\n');
-  }
-  lines.push('');
-  for (const line of found.poured) {
-    lines.push(
-      `  ${line.itemCode.padEnd(16)} ${(line.tenths / 10).toFixed(1)} bottle(s)  ${line.value.amount}`,
-    );
-  }
-  return lines.join('\n');
+  return sheet({
+    heading: `${found.functionId}  ${found.kind} bar, ${found.covers} covers, ${found.hours} hour(s)`,
+    summary: [
+      `billed ${found.billed.amount} minor, poured ${found.bottles.toFixed(1)} bottles`,
+      ...(found.onPackage === undefined
+        ? []
+        : [
+            `package would be ${found.onPackage.amount}, consumption would be ${found.onConsumption.amount}`,
+            `better for the house: ${found.betterForTheHouse}`,
+          ]),
+    ],
+    sections: [
+      {
+        title: '',
+        rows: found.poured.map((line) =>
+          row(
+            padRight(line.itemCode, 16),
+            ` ${(line.tenths / 10).toFixed(1)} bottle(s)  ${line.value.amount}`,
+          ),
+        ),
+      },
+    ],
+    whenBare: 'nobody counted the bottles',
+  });
 }

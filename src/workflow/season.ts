@@ -22,6 +22,7 @@ import { requireProperty } from '../property/store.js';
 import { bookOn, listPriceBooks, rollForward } from '../catalog/pricing.js';
 import { findLabourRate, setLabourRate } from '../labour/staffing.js';
 import { ROLES } from '../labour/types.js';
+import { padLeft, padRight, row, sheet } from '../core/layout.js';
 import { inTransaction, type Database } from '../store/database.js';
 
 export interface RollLine {
@@ -151,22 +152,27 @@ export function rollSeason(
 }
 
 export function renderRoll(roll: SeasonRoll): string {
-  const lines: string[] = [];
-  lines.push(
-    `${roll.propertyCode} ${roll.from} to ${roll.to}, ${roll.uplift.ppm / 10_000}% uplift` +
+  return sheet({
+    heading:
+      `${roll.propertyCode} ${roll.from} to ${roll.to}, ${roll.uplift.ppm / 10_000}% uplift` +
       (roll.dryRun ? ', nothing written' : ''),
-  );
-  lines.push(`${roll.prices} price(s), ${roll.labour} rate(s)`);
-  if (roll.lines.length === 0) {
-    lines.push('');
-    lines.push('there is nothing in force on that date to roll');
-    return lines.join('\n');
-  }
-  lines.push('');
-  for (const line of roll.lines) {
-    lines.push(
-      `  ${line.what.padEnd(20)} ${line.subject.padEnd(26)} ${String(line.from.amount).padStart(9)} -> ${String(line.to.amount).padStart(9)}`,
-    );
-  }
-  return lines.join('\n');
+    summary: [`${roll.prices} price(s), ${roll.labour} rate(s)`],
+    sections: [
+      {
+        title: '',
+        rows: roll.lines.map((line) =>
+          row(
+            padRight(line.what, 20),
+            ' ',
+            padRight(line.subject, 26),
+            ' ',
+            padLeft(line.from.amount, 9),
+            ' -> ',
+            padLeft(line.to.amount, 9),
+          ),
+        ),
+      },
+    ],
+    whenBare: 'there is nothing in force on that date to roll',
+  });
 }

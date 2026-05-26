@@ -25,6 +25,7 @@ import { holdsSpace } from '../booking/types.js';
 import { findCovers, billedCovers } from '../covers/guarantee.js';
 import { lineTotal, listCharges } from '../billing/charges.js';
 import { listShifts, shiftCost } from '../labour/shifts.js';
+import { padLeft, padRight, row, sheet } from '../core/layout.js';
 import type { Database } from '../store/database.js';
 
 export interface ForecastDay {
@@ -167,23 +168,29 @@ export function busyDays(found: Forecast): ForecastDay[] {
 }
 
 export function renderForecast(found: Forecast): string {
-  const rows = busyDays(found);
-  const lines: string[] = [];
-  lines.push(`${found.propertyCode} pace, ${found.from} to ${found.to}`);
-  lines.push(
-    `definite ${found.definiteCovers} covers, held ${found.heldCovers} covers, ${found.unpriced} function(s) unpriced`,
-  );
-  if (rows.length === 0) {
-    lines.push('');
-    lines.push('nothing on the books');
-    return lines.join('\n');
-  }
-  lines.push('');
-  for (const day of rows) {
-    lines.push(
-      `  ${day.serviceDate}  ${String(day.definiteFunctions).padStart(2)}/${String(day.functions).padEnd(2)}` +
-        `  ${String(day.definiteCovers).padStart(5)} definite  ${String(day.heldCovers).padStart(5)} held`,
-    );
-  }
-  return lines.join('\n');
+  return sheet({
+    heading: `${found.propertyCode} pace, ${found.from} to ${found.to}`,
+    summary: [
+      `definite ${found.definiteCovers} covers, held ${found.heldCovers} covers, ${found.unpriced} function(s) unpriced`,
+    ],
+    sections: [
+      {
+        title: '',
+        rows: busyDays(found).map((day) =>
+          row(
+            `${day.serviceDate}  `,
+            padLeft(day.definiteFunctions, 2),
+            '/',
+            padRight(day.functions, 2),
+            '  ',
+            padLeft(day.definiteCovers, 5),
+            ' definite  ',
+            padLeft(day.heldCovers, 5),
+            ' held',
+          ),
+        ),
+      },
+    ],
+    whenBare: 'nothing on the books',
+  });
 }

@@ -26,7 +26,7 @@ Layers depend downwards only. A layer may import anything above it in this list.
 | `audit` | `store` | 1 |
 | `bar` | `booking` | 2 |
 | `bar` | `catalog` | 1 |
-| `bar` | `core` | 8 |
+| `bar` | `core` | 9 |
 | `bar` | `covers` | 2 |
 | `bar` | `property` | 2 |
 | `bar` | `store` | 2 |
@@ -123,7 +123,7 @@ Layers depend downwards only. A layer may import anything above it in this list.
 | `reports` | `billing` | 3 |
 | `reports` | `booking` | 14 |
 | `reports` | `catalog` | 1 |
-| `reports` | `core` | 19 |
+| `reports` | `core` | 20 |
 | `reports` | `covers` | 7 |
 | `reports` | `equipment` | 1 |
 | `reports` | `labour` | 4 |
@@ -138,7 +138,7 @@ Layers depend downwards only. A layer may import anything above it in this list.
 | `timeline` | `property` | 2 |
 | `timeline` | `store` | 1 |
 | `workflow` | `catalog` | 2 |
-| `workflow` | `core` | 10 |
+| `workflow` | `core` | 12 |
 | `workflow` | `labour` | 2 |
 | `workflow` | `production` | 1 |
 | `workflow` | `property` | 2 |
