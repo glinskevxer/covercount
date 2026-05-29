@@ -23,6 +23,14 @@ import { setLabourRate, setStaffingRule } from '../labour/staffing.js';
 import { setTemplateStep } from '../timeline/runofshow.js';
 import { createTaxProfile } from '../billing/tax.js';
 import { createEquipment, setRequirement } from '../equipment/store.js';
+import { calendarDate } from '../core/calendar.js';
+import { setProductionFactor } from '../production/factors.js';
+import { setCancellationBand } from '../booking/damages.js';
+import { setTurnStandard } from '../property/turns.js';
+import { setDistributionPoints } from '../labour/distribution.js';
+import { addRecipient } from '../orders/delivery.js';
+import { setCreditTerms } from '../billing/statement.js';
+import { setIngredientCost } from '../production/costing.js';
 import { inTransaction, type Database } from '../store/database.js';
 
 const DEMO_PROPERTY: CatalogCode = catalogCode('CANYON');
@@ -34,6 +42,8 @@ export interface DemoResult {
   readonly packages: number;
   readonly recipes: number;
   readonly equipment: number;
+  /** Rules the house publishes once: factors, bands, turns, points, terms. */
+  readonly houseRules: number;
 }
 
 const ITEMS = [
@@ -126,6 +136,8 @@ export function seedDemoProperty(db: Database, now: string): DemoResult {
       now,
     );
 
+    seedHouseRules(handle, now);
+
     return {
       propertyCode: DEMO_PROPERTY,
       rooms: 4,
@@ -133,6 +145,7 @@ export function seedDemoProperty(db: Database, now: string): DemoResult {
       packages: 2,
       recipes: 5,
       equipment: 6,
+      houseRules: 22,
     };
   });
 }
@@ -457,4 +470,82 @@ function seedCupboard(db: Database, now: string): void {
       fixed,
     });
   }
+}
+
+/**
+ * The rules the house publishes once and then works to all year.
+ *
+ * These came later than the rest of the demo and they are the reason it is
+ * worth reseeding: without them half the commands answer "this property
+ * publishes nothing", which reads as a broken build rather than an empty one.
+ */
+function seedHouseRules(db: Database, now: string): void {
+  // What the kitchen makes over the plate count, by how the room is served.
+  setProductionFactor(db, DEMO_PROPERTY, 'BUFFET', 1_150_000, 'display holds to the last table');
+  setProductionFactor(db, DEMO_PROPERTY, 'STATIONS', 1_250_000, 'guests go back');
+
+  // The scale on the back of the contract.
+  const bands: [number, number, string][] = [
+    [180, 250_000, 'six months out'],
+    [90, 500_000, 'a quarter out'],
+    [30, 750_000, 'a month out'],
+    [0, 1_000_000, 'inside a month'],
+  ];
+  for (const [days, ratePpm, note] of bands) {
+    setCancellationBand(db, DEMO_PROPERTY, days, ratePpm, note);
+  }
+
+  // How long a room takes to turn, and how many hands it takes.
+  const turns: [string, string, number, number][] = [
+    ['THEATER', 'ROUNDS-10', 150, 6],
+    ['ROUNDS-10', 'THEATER', 90, 4],
+    ['ROUNDS-10', 'RECEPTION', 60, 3],
+  ];
+  for (const [from, to, minutes, heads] of turns) {
+    setTurnStandard(db, DEMO_PROPERTY, from, to, minutes, heads);
+  }
+
+  // What each role earns out of the service charge.
+  const points: [string, number][] = [
+    ['SERVER', 10],
+    ['CAPTAIN', 16],
+    ['BARTENDER', 10],
+    ['HOUSEMAN', 6],
+    ['COAT-CHECK', 4],
+  ];
+  for (const [role, earned] of points) {
+    setDistributionPoints(db, DEMO_PROPERTY, role, earned);
+  }
+
+  // Who gets the order when it goes out.
+  const list: [string, string, string][] = [
+    ['chef@canyonridge.example', 'Executive chef', 'EMAIL'],
+    ['Banquet board', 'Houseman', 'BOARD'],
+    ['av@canyonridge.example', 'Audio visual', 'EMAIL'],
+  ];
+  for (const [recipient, role, channel] of list) {
+    addRecipient(db, DEMO_PROPERTY, { recipient, role, channel });
+  }
+
+  setCreditTerms(db, DEMO_PROPERTY, catalogCode('FENWICK'), 45, 25_000_00);
+
+  // What a case costs, so a plate can be costed at all.
+  const quotes: [string, number][] = [
+    ['SHORT-RIB', 32_000],
+    ['MIREPOIX', 1_400],
+    ['RED-WINE', 4_200],
+    ['VEAL-STOCK', 5_600],
+    ['BEETROOT', 2_200],
+  ];
+  for (const [ingredient, pack] of quotes) {
+    setIngredientCost(
+      db,
+      DEMO_PROPERTY,
+      catalogCode(ingredient),
+      calendarDate('2025-01-01'),
+      pack,
+      'Front Range Provisions',
+    );
+  }
+  void now;
 }

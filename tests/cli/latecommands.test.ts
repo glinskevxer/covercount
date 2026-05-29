@@ -74,14 +74,15 @@ function seeded(): { cli: CliHarness; slot: string; booking: string } {
 describe('the production factor at a terminal', () => {
   it('sets one, lists it and shows it', () => {
     const { cli } = seeded();
+    const before = cli.json<{ style: string }[]>('factor', 'list', ...P).length;
     expect(
-      cli.json<{ style: string }>('factor', 'set', ...P, '--style', 'BUFFET', '--percent', '115')
+      cli.json<{ style: string }>('factor', 'set', ...P, '--style', 'RECEPTION', '--percent', '115')
         .style,
-    ).toBe('BUFFET');
-    expect(cli.json<{ style: string }[]>('factor', 'list', ...P)).toHaveLength(1);
-    expect(cli.json<{ factor: string }>('factor', 'show', ...P, '--style', 'BUFFET').factor).toBe(
-      '115%',
-    );
+    ).toBe('RECEPTION');
+    expect(cli.json<{ style: string }[]>('factor', 'list', ...P)).toHaveLength(before + 1);
+    expect(
+      cli.json<{ factor: string }>('factor', 'show', ...P, '--style', 'RECEPTION').factor,
+    ).toBe('115%');
   });
 });
 
@@ -113,9 +114,12 @@ describe('the minimum at a terminal', () => {
 describe('the cancellation scale at a terminal', () => {
   it('publishes bands, quotes a walkaway and drops a band', () => {
     const { cli, booking } = seeded();
+    // The demo already publishes a scale, and setting a band it carries
+    // replaces that band rather than adding one.
+    const bands = cli.json<{ days: number }[]>('damages', 'scale', ...P).length;
     cli.run('damages', 'band', ...P, '--days', '90', '--percent', '50');
     cli.run('damages', 'band', ...P, '--days', '0', '--percent', '100');
-    expect(cli.json<{ days: number }[]>('damages', 'scale', ...P)).toHaveLength(2);
+    expect(cli.json<{ days: number }[]>('damages', 'scale', ...P)).toHaveLength(bands);
 
     const priced =
       cli.json<{ id: string }[]>('function', 'list', '--booking', booking)[0]?.id ?? '';
@@ -129,7 +133,7 @@ describe('the cancellation scale at a terminal', () => {
       '2025-01-20',
     );
     expect(quote).toHaveLength(1);
-    expect(quote[0]?.band).toBe('100%');
+    expect(quote[0]?.band).toBe('75%');
     expect(quote[0]?.owed).not.toBe('$0.00');
     expect(cli.json<{ removed: boolean }>('damages', 'drop', ...P, '--days', '0').removed).toBe(
       true,
@@ -291,12 +295,13 @@ describe('the sheets at a terminal', () => {
 
   it('prints the turns and the cupboard', () => {
     const { cli } = seeded();
+    const turns = cli.json<{ from: string }[]>('turn', 'table', ...P).length;
     cli.run(
       'turn',
       'standard',
       ...P,
       '--from',
-      'THEATER',
+      'CRESCENT',
       '--to',
       'ROUNDS-10',
       '--minutes',
@@ -304,7 +309,7 @@ describe('the sheets at a terminal', () => {
       '--heads',
       '6',
     );
-    expect(cli.json<{ from: string }[]>('turn', 'table', ...P)).toHaveLength(1);
+    expect(cli.json<{ from: string }[]>('turn', 'table', ...P)).toHaveLength(turns + 1);
     expect(cli.run('turn', 'day', ...P, '--date', '2025-04-18').out).toContain('no room turns');
     expect(cli.run('cupboard', 'day', ...P, '--date', '2025-04-18').out).toContain(
       'nothing is pulled',
@@ -390,11 +395,12 @@ describe('the meetings and the distribution at a terminal', () => {
 
   it('keeps a distribution list', () => {
     const { cli } = seeded();
+    const listed = cli.json<{ recipient: string }[]>('send', 'list', ...P).length;
     cli.run('send', 'add', ...P, '--to', 'chef@canyon', '--role', 'Chef', '--channel', 'EMAIL');
-    expect(cli.json<{ recipient: string }[]>('send', 'list', ...P)).toHaveLength(1);
+    expect(cli.json<{ recipient: string }[]>('send', 'list', ...P)).toHaveLength(listed + 1);
     expect(
       cli.json<{ retired: boolean }>('send', 'retire', ...P, '--to', 'chef@canyon').retired,
     ).toBe(true);
-    expect(cli.json<{ recipient: string }[]>('send', 'list', ...P)).toHaveLength(0);
+    expect(cli.json<{ recipient: string }[]>('send', 'list', ...P)).toHaveLength(listed);
   });
 });

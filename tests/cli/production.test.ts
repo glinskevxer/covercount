@@ -254,16 +254,19 @@ describe('the factor commands', () => {
     cli.run('store', 'init');
     cli.run('demo', 'seed');
 
+    // The demo publishes BUFFET and STATIONS and says nothing about PLATED,
+    // which is the case worth checking: silence means one to one.
     const silent = cli.json<{ factor: string; percent: number }>(
       'factor',
       'show',
       ...P,
       '--style',
-      'BUFFET',
+      'PLATED',
     );
     expect(silent.factor).toBe('100%');
     expect(silent.percent).toBe(100);
-    expect(cli.run('factor', 'list', ...P).out).toContain('makes exactly what it plates');
+    const published = cli.json<{ style: string }[]>('factor', 'list', ...P);
+    expect(published.map((row) => row.style)).toEqual(['BUFFET', 'STATIONS']);
 
     const set = cli.json<{ style: string; factor: string; note: string }>(
       'factor',
@@ -281,8 +284,8 @@ describe('the factor commands', () => {
     expect(set.note).toBe('display holds to the last table');
 
     const listed = cli.json<{ style: string; factor: string }[]>('factor', 'list', ...P);
-    expect(listed).toHaveLength(1);
-    expect(listed[0]?.factor).toBe('115%');
+    expect(listed).toHaveLength(published.length);
+    expect(listed.find((row) => row.style === 'BUFFET')?.factor).toBe('115%');
     expect(cli.json<{ factor: string }>('factor', 'show', ...P, '--style', 'BUFFET').factor).toBe(
       '115%',
     );

@@ -192,6 +192,7 @@ export function registerDemoCommands(program: Command, makeContext: () => CliCon
               packages: result.packages,
               recipes: result.recipes,
               equipment: result.equipment,
+              houseRules: result.houseRules,
             },
             { format: context.format },
           ),

@@ -58,3 +58,54 @@ describe('covercount demo seed', () => {
     expect(aspen.occupies).toBe('ASPEN');
   });
 });
+
+describe('the house rules the demo publishes', () => {
+  it('leaves every rule driven command with something to say', () => {
+    const cli = cliHarness();
+    cli.run('store', 'init');
+    const seeded = cli.json<{ houseRules: number }>('demo', 'seed');
+    expect(seeded.houseRules).toBeGreaterThan(0);
+
+    const P = ['--property', 'CANYON'];
+    expect(cli.json<{ style: string }[]>('factor', 'list', ...P).length).toBeGreaterThan(1);
+    expect(cli.json<{ days: number }[]>('damages', 'scale', ...P)).toHaveLength(4);
+    expect(cli.json<{ from: string }[]>('turn', 'table', ...P)).toHaveLength(3);
+    expect(cli.json<{ role: string }[]>('pool', 'table', ...P).length).toBeGreaterThan(3);
+    expect(cli.json<{ recipient: string }[]>('send', 'list', ...P)).toHaveLength(3);
+  });
+
+  it('prices enough of the larder to cost a plate', () => {
+    const cli = cliHarness();
+    cli.run('store', 'init');
+    cli.run('demo', 'seed');
+    const costed = cli.json<{ item: string; cost: string }[]>(
+      'cost',
+      'recipe',
+      '--property',
+      'CANYON',
+      '--recipe',
+      'BRAISED-SHORT-RIB',
+      '--on',
+      '2025-04-18',
+    );
+    expect(costed.length).toBeGreaterThan(0);
+    expect(costed[0]?.cost).not.toBe('$0.00');
+  });
+
+  it('gives the account terms to age a statement against', () => {
+    const cli = cliHarness();
+    cli.run('store', 'init');
+    cli.run('demo', 'seed');
+    const ageing = cli.json<{ age: string }[]>(
+      'statement',
+      'ageing',
+      '--property',
+      'CANYON',
+      '--account',
+      'FENWICK',
+      '--on',
+      '2025-06-01',
+    );
+    expect(ageing).toHaveLength(5);
+  });
+});

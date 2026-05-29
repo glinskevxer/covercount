@@ -17,7 +17,7 @@ Layers depend downwards only. A layer may import anything above it in this list.
 | --- | --- | --- |
 | `audit` | `billing` | 2 |
 | `audit` | `booking` | 5 |
-| `audit` | `core` | 4 |
+| `audit` | `core` | 5 |
 | `audit` | `covers` | 3 |
 | `audit` | `labour` | 2 |
 | `audit` | `orders` | 1 |
@@ -70,14 +70,15 @@ Layers depend downwards only. A layer may import anything above it in this list.
 | `covers` | `core` | 13 |
 | `covers` | `property` | 2 |
 | `covers` | `store` | 3 |
-| `demo` | `billing` | 1 |
-| `demo` | `booking` | 1 |
+| `demo` | `billing` | 2 |
+| `demo` | `booking` | 2 |
 | `demo` | `catalog` | 3 |
-| `demo` | `core` | 2 |
+| `demo` | `core` | 3 |
 | `demo` | `equipment` | 1 |
-| `demo` | `labour` | 1 |
-| `demo` | `production` | 2 |
-| `demo` | `property` | 2 |
+| `demo` | `labour` | 2 |
+| `demo` | `orders` | 1 |
+| `demo` | `production` | 4 |
+| `demo` | `property` | 3 |
 | `demo` | `store` | 1 |
 | `demo` | `timeline` | 1 |
 | `equipment` | `booking` | 2 |
@@ -144,4 +145,4 @@ Layers depend downwards only. A layer may import anything above it in this list.
 | `workflow` | `property` | 2 |
 | `workflow` | `store` | 2 |
 
-134 source files, 128 edges between areas.
+134 source files, 129 edges between areas.

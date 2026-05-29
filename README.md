@@ -39,6 +39,17 @@ A property to look at:
     node dist/src/cli/main.js demo seed
     node dist/src/cli/main.js --property CANYON space list
 
+`demo seed` publishes the house rules as well as the rooms: production
+factors, the cancellation scale, turn standards, the service charge points,
+the distribution list, account terms and enough supplier prices to cost a
+plate. Without them half the commands correctly answer "this property
+publishes nothing", which reads like a broken build.
+
+The whole day on one page, and what is coming:
+
+    node dist/src/cli/main.js --property CANYON today --date 2025-04-18
+    node dist/src/cli/main.js --property CANYON pace range --from 2025-04-14 --to 2025-04-20
+
 The read service, which opens the store read only:
 
     node dist/src/cli/main.js serve start --port 8377
@@ -66,11 +77,16 @@ spreadsheet.
     src/orders        the banquet event order, its revisions and change orders
     src/timeline      the run of show
     src/equipment     the cupboard and what a setup pulls
+    src/bar           package, consumption and cash bars, and the pour count
     src/reports       the sheets people print
     src/audit         what quietly stopped adding up
+    src/workflow      the jobs that move a property: a season roll, a load
     src/http          the read only service
     src/cli           the command line
     tests             unit, cli, http and integration, mirroring src
+
+Layers depend downwards only, and `npm run map` fails if one does not.
+`docs/architecture.md` is drawn from the imports rather than from memory.
 
 ## The rules worth knowing before reading the code
 
@@ -84,13 +100,24 @@ spreadsheet.
 - **A revision is a snapshot.** What the kitchen worked from on the Tuesday
   has to be readable in March, so revisions freeze rather than diff.
 - **Every refusal carries a code.** The command line reports a domain refusal
-  as exit 1 and a bug as exit 3.
+  as exit 1 and a bug as exit 3. `covercount codes` lists them, and a check
+  fails if one code ever comes to mean two things.
+- **The guarantee closes the menu.** A tasting after it is a nice lunch, and
+  the tasting window says so rather than letting somebody book one.
+- **A package costs its dearest choice.** Any guest can order the halibut, so
+  averaging the mains is how a menu looks profitable and loses money on the
+  night the whole room orders it.
+- **Setup travels, trade does not.** Cloning a property carries the rules and
+  none of the bookings, and a test fails if a new table joins neither list.
 
 ## Development
 
-    npm run check        everything CI runs, in the order it runs it
+    npm run check          everything CI runs, in the order it runs it
     npm test
-    npm run coverage     with the floor enforced
-    npm run docs         regenerate docs/commands.md from the program
+    npm run coverage       with the floor enforced
+    npm run docs           regenerate docs/commands.md from the program
+    npm run map            regenerate docs/architecture.md from the imports
+    npm run check:exports  find exports nothing imports
 
-`docs/commands.md` is generated. Do not edit it by hand.
+`docs/commands.md` and `docs/architecture.md` are generated. Do not edit
+them by hand; `npm run check` fails when either is out of step with the code.
