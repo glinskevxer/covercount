@@ -1,6 +1,6 @@
 {
   "name": "covercount",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Banquet event order and catering production control for a hotel food and beverage department",
   "license": "UNLICENSED",
   "private": true,
@@ -23,6 +23,7 @@
     "check": "bash scripts/check.sh",
     "check:pins": "node scripts/check-pins.mjs",
     "check:exports": "node scripts/check-exports.mjs",
+    "check:version": "node scripts/check-version.mjs",
     "map": "node scripts/generate-map.mjs",
     "map:check": "node scripts/generate-map.mjs --check",
     "docs": "npm run build && node scripts/generate-docs.mjs",

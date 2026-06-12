@@ -1,3 +1,7 @@
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { VERSION } from '../../../src/cli/program.js';
+import { SERVICE_VERSION } from '../../../src/http/service.js';
 import { describe, expect, it } from 'vitest';
 import {
   blockMinute,
@@ -79,5 +83,23 @@ describe('the other argument readers', () => {
     expect(listArg('GRAND-A, GRAND-B')).toEqual(['GRAND-A', 'GRAND-B']);
     expect(listArg('GRAND-A,,')).toEqual(['GRAND-A']);
     expect(listArg('   ')).toEqual([]);
+  });
+});
+
+describe('the version', () => {
+  it('is the same number the service serves and the package carries', () => {
+    const packaged = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
+    expect(VERSION).toBe(packaged.version);
+    expect(SERVICE_VERSION).toBe(packaged.version);
+    expect(VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it('is what the command line prints', () => {
+    const result = execFileSync(
+      process.execPath,
+      ['--import', 'tsx', 'src/cli/main.ts', '--version'],
+      { encoding: 'utf8' },
+    );
+    expect(result.trim()).toBe(VERSION);
   });
 });

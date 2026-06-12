@@ -1,6 +1,6 @@
 # covercount command reference
 
-Generated from the program itself at version 0.1.0. Do not edit by hand.
+Generated from the program itself at version 1.0.0. Do not edit by hand.
 
 Run `npm run docs` after changing a command.
 
