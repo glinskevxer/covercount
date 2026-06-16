@@ -1,3 +1,4 @@
+import { scratchDirectory } from '../../support/store.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -14,7 +15,7 @@ import {
   tableExists,
   tableNames,
 } from '../../../src/store/database.js';
-import { DomainError } from '../../../src/core/errors.js';
+import { DomainError, isDomainError } from '../../../src/core/errors.js';
 
 const scratchDirs: string[] = [];
 
@@ -166,5 +167,28 @@ describe('checking a store', () => {
     expect(() => integrityCheck(db)).not.toThrow();
     expect(foreignKeyCheck(db)).toEqual([]);
     closeDatabase(db);
+  });
+});
+
+describe('a store that cannot be opened', () => {
+  it('refuses rather than crashing, and says what to check', () => {
+    // A path whose parent does not exist is the same class of failure as a
+    // bind mount the process cannot write to: SQLite says only "unable to
+    // open database file", and neither is a bug in this program.
+    const nowhere = join(scratchDirectory(), 'no', 'such', 'place', 'property.covercount.db');
+    let raised: unknown;
+    try {
+      openDatabase(nowhere);
+    } catch (error) {
+      raised = error;
+    }
+    expect(isDomainError(raised)).toBe(true);
+    expect((raised as DomainError).code).toBe('store.unopenable');
+    expect((raised as DomainError).kind).toBe('not-permitted');
+    expect((raised as DomainError).message).toContain('can write to it');
+  });
+
+  it('still refuses a blank path for the reason it always did', () => {
+    expect(() => openDatabase('   ')).toThrow(/cannot be blank/);
   });
 });

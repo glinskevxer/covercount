@@ -24,6 +24,9 @@ node scripts/check-pins.mjs
 echo "--- the version"
 node scripts/check-version.mjs
 
+echo "--- advisories against what ships"
+npm audit --omit=dev --audit-level=high
+
 echo "--- dead exports"
 node scripts/check-exports.mjs
 

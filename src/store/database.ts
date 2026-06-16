@@ -10,7 +10,7 @@
 import BetterSqlite3 from 'better-sqlite3';
 import { dirname } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
-import { conflict, invalidInput } from '../core/errors.js';
+import { conflict, describeError, invalidInput, notPermitted } from '../core/errors.js';
 
 export type Database = BetterSqlite3.Database;
 
@@ -40,10 +40,23 @@ export function openDatabase(path: string, options: OpenDatabaseOptions = {}): D
     }
   }
 
-  const db = new BetterSqlite3(path, {
-    readonly: options.readOnly === true,
-    fileMustExist: options.readOnly === true && !inMemory,
-  });
+  let db: Database;
+  try {
+    db = new BetterSqlite3(path, {
+      readonly: options.readOnly === true,
+      fileMustExist: options.readOnly === true && !inMemory,
+    });
+  } catch (error) {
+    // SQLite says "unable to open database file" for every reason a path can
+    // fail, and a directory the process cannot write to is by far the most
+    // common one: a container bind mount owned by root, a read only volume, a
+    // share that dropped. None of those is a bug in this program, so none of
+    // them should exit like one.
+    throw notPermitted(
+      'store.unopenable',
+      `cannot open a store at ${path}: ${describeError(error)}. Check the directory exists and this user can write to it`,
+    );
+  }
 
   db.pragma(`busy_timeout = ${options.busyTimeoutMs ?? 5000}`);
   db.pragma('foreign_keys = ON');

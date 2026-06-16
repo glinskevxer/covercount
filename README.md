@@ -58,7 +58,12 @@ The read service, which opens the store read only:
 In a container:
 
     docker build -t covercount .
+    mkdir -p data && sudo chown 10001:10001 data
     docker run --rm -v "$PWD/data:/data" -p 8377:8377 covercount
+
+The image runs as uid 10001 and never as root, so the directory you mount at
+`/data` has to be owned by that uid. Skip the `chown` and the container
+refuses to open the store and says so, rather than starting and failing later.
 
 Every command takes `--format json`, so the same command feeds a printer and a
 spreadsheet.

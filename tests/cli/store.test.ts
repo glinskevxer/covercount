@@ -1,7 +1,8 @@
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { cliHarness } from '../support/cli.js';
-import { cleanScratch } from '../support/store.js';
+import { cleanScratch, scratchDirectory } from '../support/store.js';
 import { TARGET_SCHEMA_VERSION } from '../../src/store/schema.js';
 
 afterEach(cleanScratch);
@@ -139,5 +140,27 @@ describe('covercount store health', () => {
     cli.run('store', 'init');
     cli.run('demo', 'seed');
     expect(cli.json<{ statistics: number }>('store', 'analyse').statistics).toBe(1);
+  });
+});
+
+describe('where the store file goes', () => {
+  it('creates the directory it is pointed at', () => {
+    const cli = cliHarness();
+    const buried = join(scratchDirectory(), 'season', '2026', 'property.covercount.db');
+    const result = cli.runAt(buried, 'store', 'init');
+    expect(result.code).toBe(0);
+    expect(existsSync(buried)).toBe(true);
+  });
+
+  it('refuses to read a store that is not there rather than making one', () => {
+    const cli = cliHarness();
+    const missing = join(scratchDirectory(), 'nothing.covercount.db');
+    const result = cli.runAt(missing, 'store', 'health');
+    // Exit 3 is this program saying it has a bug. A store that is not there
+    // is not one, and the difference decides whether an operator reads the
+    // message or opens a ticket.
+    expect(result.code).toBe(1);
+    expect(result.err).toContain('there is no store at');
+    expect(existsSync(missing)).toBe(false);
   });
 });

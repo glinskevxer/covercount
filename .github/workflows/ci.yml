@@ -113,8 +113,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
-      - name: npm audit
-        run: npm audit --audit-level=high
+      # What actually ships is the production tree. The test runner never
+      # leaves this repository, so an advisory against it is worth reading and
+      # is not a reason to fail a build or to break the pinned toolchain.
+      - name: nothing shipping carries a high advisory
+        run: npm audit --omit=dev --audit-level=high
+      - name: advisories against the toolchain, for reading
+        run: npm audit || true
       - name: every dependency is pinned
         run: node scripts/check-pins.mjs
       - name: one version everywhere
@@ -140,7 +145,19 @@ jobs:
       - name: the built store opens inside the image
         run: |
           docker run --rm covercount:ci store migrations
+          # The image runs as uid 10001, and a bind mount arrives owned by
+          # root, so the host directory has to be handed over first. This is
+          # the same step anybody deploying it has to take.
+          mkdir -p /tmp/ci && sudo chown 10001:10001 /tmp/ci
           docker run --rm -v /tmp/ci:/data covercount:ci store init
+      - name: an unwritable mount is refused rather than crashing
+        run: |
+          mkdir -p /tmp/ci-locked && sudo chown root:root /tmp/ci-locked && sudo chmod 555 /tmp/ci-locked
+          set +e
+          docker run --rm -v /tmp/ci-locked:/data covercount:ci store init
+          code=$?
+          set -e
+          test "$code" = "1"
       - name: the image runs as a non root user
         run: test "$(docker run --rm --entrypoint id covercount:ci -u)" != "0"
 

@@ -18,6 +18,8 @@ export interface CliRun {
 export interface CliHarness {
   readonly storePath: string;
   run: (...args: string[]) => CliRun;
+  /** The same, against a store path of the caller's choosing. */
+  runAt: (storePath: string, ...args: string[]) => CliRun;
   json: <T>(...args: string[]) => T;
 }
 
@@ -27,10 +29,10 @@ export function cliHarness(options: { storePath?: string; now?: string } = {}): 
   const storePath = options.storePath ?? scratchStorePath();
   const now = options.now ?? CLI_NOW;
 
-  const run = (...args: string[]): CliRun => {
+  const runAt = (at: string, ...args: string[]): CliRun => {
     const out: string[] = [];
     const err: string[] = [];
-    const code = runCli(['--store', storePath, ...args], {
+    const code = runCli(['--store', at, ...args], {
       env: {},
       now: () => now,
       write: (line) => out.push(line),
@@ -47,9 +49,12 @@ export function cliHarness(options: { storePath?: string; now?: string } = {}): 
     };
   };
 
+  const run = (...args: string[]): CliRun => runAt(storePath, ...args);
+
   return {
     storePath,
     run,
+    runAt,
     json: <T>(...args: string[]): T => {
       const result = run('--format', 'json', ...args);
       if (result.code !== 0) {
