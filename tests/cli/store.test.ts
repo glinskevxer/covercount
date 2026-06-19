@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { cliHarness } from '../support/cli.js';
 import { cleanScratch, scratchDirectory } from '../support/store.js';
 import { TARGET_SCHEMA_VERSION } from '../../src/store/schema.js';
@@ -162,5 +163,63 @@ describe('where the store file goes', () => {
     expect(result.code).toBe(1);
     expect(result.err).toContain('there is no store at');
     expect(existsSync(missing)).toBe(false);
+  });
+});
+
+describe('the environment the entry point passes through', () => {
+  const NAMED = [
+    'COVERCOUNT_STORE',
+    'COVERCOUNT_PROPERTY',
+    'COVERCOUNT_FORMAT',
+    'COVERCOUNT_ACTOR',
+  ];
+
+  it('reads the store out of the environment', () => {
+    const store = join(scratchDirectory(), 'from-the-environment.covercount.db');
+    const result = execFileSync(
+      process.execPath,
+      ['--import', 'tsx', 'src/cli/main.ts', 'store', 'init'],
+      { encoding: 'utf8', env: { ...process.env, COVERCOUNT_STORE: store } },
+    );
+    expect(result).toContain(store);
+    expect(existsSync(store)).toBe(true);
+  });
+
+  it('takes the format from the environment too', () => {
+    const store = join(scratchDirectory(), 'formatted.covercount.db');
+    const result = execFileSync(
+      process.execPath,
+      ['--import', 'tsx', 'src/cli/main.ts', 'store', 'init'],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, COVERCOUNT_STORE: store, COVERCOUNT_FORMAT: 'json' },
+      },
+    );
+    expect(JSON.parse(result) as { store: string }).toMatchObject({ store });
+  });
+
+  it('lets an option beat the environment', () => {
+    const fromEnv = join(scratchDirectory(), 'ignored.covercount.db');
+    const named = join(scratchDirectory(), 'named.covercount.db');
+    execFileSync(
+      process.execPath,
+      ['--import', 'tsx', 'src/cli/main.ts', '--store', named, 'store', 'init'],
+      { encoding: 'utf8', env: { ...process.env, COVERCOUNT_STORE: fromEnv } },
+    );
+    expect(existsSync(named)).toBe(true);
+    expect(existsSync(fromEnv)).toBe(false);
+  });
+
+  it('passes exactly the variables the context reads, and no others', () => {
+    // The entry point names them one at a time rather than handing over
+    // process.env, so the two lists have to be checked against each other.
+    const entry = readFileSync('src/cli/main.ts', 'utf8');
+    const context = readFileSync('src/cli/context.ts', 'utf8');
+    for (const name of NAMED) {
+      expect(entry).toContain(`process.env.${name}`);
+      expect(context).toContain(name);
+    }
+    const read = [...context.matchAll(/readonly (COVERCOUNT_[A-Z_]+)\?/g)].map((m) => m[1]);
+    expect(read.sort()).toEqual([...NAMED].sort());
   });
 });
